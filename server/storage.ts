@@ -1,12 +1,14 @@
-import { users, scans, type User, type InsertUser, type Scan, type InsertScan } from "@shared/schema";
+// Blueprint reference: javascript_log_in_with_replit
+import { users, scans, type User, type UpsertUser, type Scan, type InsertScan } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc } from "drizzle-orm";
 
 export interface IStorage {
+  // User operations - Required for Replit Auth
   getUser(id: string): Promise<User | undefined>;
-  getUserByUsername(username: string): Promise<User | undefined>;
-  createUser(user: InsertUser): Promise<User>;
+  upsertUser(user: UpsertUser): Promise<User>;
   
+  // Scan operations
   createScan(scan: InsertScan): Promise<Scan>;
   getScan(id: number): Promise<Scan | undefined>;
   getAllScans(): Promise<Scan[]>;
@@ -15,24 +17,28 @@ export interface IStorage {
 }
 
 export class DatabaseStorage implements IStorage {
+  // User operations - Required for Replit Auth
   async getUser(id: string): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.id, id));
     return user || undefined;
   }
 
-  async getUserByUsername(username: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.username, username));
-    return user || undefined;
-  }
-
-  async createUser(insertUser: InsertUser): Promise<User> {
+  async upsertUser(userData: UpsertUser): Promise<User> {
     const [user] = await db
       .insert(users)
-      .values(insertUser)
+      .values(userData)
+      .onConflictDoUpdate({
+        target: users.id,
+        set: {
+          ...userData,
+          updatedAt: new Date(),
+        },
+      })
       .returning();
     return user;
   }
 
+  // Scan operations
   async createScan(insertScan: InsertScan): Promise<Scan> {
     const [scan] = await db
       .insert(scans)

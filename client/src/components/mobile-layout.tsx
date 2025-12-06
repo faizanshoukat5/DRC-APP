@@ -1,7 +1,18 @@
 import { ReactNode } from "react";
 import { Link, useLocation } from "wouter";
-import { Home, History, Settings, ScanEye, Menu } from "lucide-react";
+import { Home, History, Settings, ScanEye, Menu, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/hooks/useAuth";
+import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface MobileLayoutProps {
   children: ReactNode;
@@ -11,6 +22,17 @@ interface MobileLayoutProps {
 
 export function MobileLayout({ children, title, showBack }: MobileLayoutProps) {
   const [location] = useLocation();
+  const { user } = useAuth();
+
+  const getUserInitials = () => {
+    if (user?.firstName && user?.lastName) {
+      return `${user.firstName[0]}${user.lastName[0]}`.toUpperCase();
+    }
+    if (user?.email) {
+      return user.email[0].toUpperCase();
+    }
+    return "U";
+  };
 
   return (
     <div className="min-h-screen bg-slate-100 dark:bg-slate-900 flex items-center justify-center p-0 md:p-4 font-sans">
@@ -32,9 +54,42 @@ export function MobileLayout({ children, title, showBack }: MobileLayoutProps) {
               {title || "RetinaAI"}
             </h1>
           </div>
-          <button className="p-2 -mr-2 hover:bg-slate-100 rounded-full text-slate-500">
-            <Menu className="w-5 h-5" />
-          </button>
+          
+          {user ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="h-8 w-8 rounded-full p-0">
+                  <Avatar className="h-8 w-8">
+                    <AvatarImage src={user.profileImageUrl || undefined} alt={user.email || "User"} className="object-cover" />
+                    <AvatarFallback className="bg-primary text-white text-xs">{getUserInitials()}</AvatarFallback>
+                  </Avatar>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel>
+                  <div className="flex flex-col space-y-1">
+                    <p className="text-sm font-medium leading-none">
+                      {user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : "Account"}
+                    </p>
+                    <p className="text-xs leading-none text-muted-foreground">
+                      {user.email}
+                    </p>
+                  </div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <a href="/api/logout" className="cursor-pointer">
+                    <LogOut className="mr-2 h-4 w-4" />
+                    <span>Log out</span>
+                  </a>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <button className="p-2 -mr-2 hover:bg-slate-100 rounded-full text-slate-500">
+              <Menu className="w-5 h-5" />
+            </button>
+          )}
         </header>
 
         {/* Main Content */}
@@ -43,7 +98,7 @@ export function MobileLayout({ children, title, showBack }: MobileLayoutProps) {
         </main>
 
         {/* Bottom Navigation */}
-        {!location.includes("/analysis") && (
+        {!location.includes("/analysis") && user && (
           <nav className="h-20 bg-white dark:bg-slate-950 border-t flex items-center justify-around px-2 pb-2 z-20">
             <Link href="/" className={cn(
                 "flex flex-col items-center gap-1 p-2 rounded-xl transition-all duration-200 w-20 cursor-pointer",
