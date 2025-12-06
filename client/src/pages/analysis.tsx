@@ -2,16 +2,31 @@ import { MobileLayout } from "@/components/mobile-layout";
 import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
-import { CheckCircle2, BrainCircuit, UploadCloud, Loader2, Smartphone } from "lucide-react";
+import { CheckCircle2, BrainCircuit, UploadCloud, Smartphone } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { createScan } from "@/lib/api";
+import { toast } from "sonner";
 
 export default function AnalysisPage() {
   const [, setLocation] = useLocation();
   const [step, setStep] = useState(0);
   const [progress, setProgress] = useState(0);
+  const queryClient = useQueryClient();
+
+  const createScanMutation = useMutation({
+    mutationFn: createScan,
+    onSuccess: (scan) => {
+      queryClient.invalidateQueries({ queryKey: ["scans"] });
+      setTimeout(() => setLocation(`/results/${scan.id}`), 500);
+    },
+    onError: () => {
+      toast.error("Failed to save scan results");
+      setTimeout(() => setLocation("/"), 2000);
+    }
+  });
 
   useEffect(() => {
-    // Simulate analysis pipeline
     const interval = setInterval(() => {
       setProgress(prev => {
         if (prev >= 100) return 100;
@@ -20,25 +35,37 @@ export default function AnalysisPage() {
     }, 40);
 
     const timers = [
-      setTimeout(() => setStep(1), 1000), // Preprocessing
-      setTimeout(() => setStep(2), 2500), // Model Selection
-      setTimeout(() => setStep(3), 3500), // Inference
-      setTimeout(() => setLocation("/results"), 4500), // Done
+      setTimeout(() => setStep(1), 1000),
+      setTimeout(() => setStep(2), 2500),
+      setTimeout(() => setStep(3), 3500),
+      setTimeout(() => {
+        createScanMutation.mutate({
+          patientId: `P-${Math.floor(1000 + Math.random() * 9000)}`,
+          originalImageUrl: "/api/placeholder-fundus.jpg",
+          heatmapImageUrl: "/api/placeholder-heatmap.jpg",
+          diagnosis: "Severe DR",
+          severity: "severe",
+          confidence: 98,
+          modelVersion: "Hybrid CNN-LSTM v2.4",
+          inferenceMode: "TFLite (GPU Delegate)",
+          inferenceTime: 124,
+          preprocessingMethod: "CLAHE + Green Channel",
+          metadata: { notes: "Proliferative Diabetic Retinopathy" }
+        });
+      }, 4500),
     ];
 
     return () => {
       clearInterval(interval);
       timers.forEach(clearTimeout);
     };
-  }, [setLocation]);
+  }, []);
 
   return (
     <MobileLayout title="Analyzing...">
       <div className="h-full flex flex-col items-center justify-center p-8 space-y-12">
         
-        {/* Visualizer */}
         <div className="relative w-64 h-64">
-          {/* Rings */}
           <motion.div 
             className="absolute inset-0 border-4 border-primary/20 rounded-full"
             animate={{ scale: [1, 1.1, 1], opacity: [0.5, 1, 0.5] }}
@@ -50,7 +77,6 @@ export default function AnalysisPage() {
             transition={{ repeat: Infinity, duration: 2, delay: 0.2 }}
           />
           
-          {/* Center Icon Changes based on step */}
           <div className="absolute inset-0 flex items-center justify-center">
             <motion.div
               key={step}
@@ -83,7 +109,7 @@ export default function AnalysisPage() {
              </p>
           </div>
 
-          <Progress value={progress} className="h-2" />
+          <Progress value={progress} className="h-2" data-testid="progress-analysis" />
         </div>
       </div>
     </MobileLayout>

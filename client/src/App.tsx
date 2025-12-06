@@ -4,7 +4,6 @@ import { queryClient } from "./lib/queryClient";
 import { Toaster } from "@/components/ui/toaster";
 import NotFound from "@/pages/not-found";
 
-// Pages
 import HomePage from "@/pages/home";
 import AnalysisPage from "@/pages/analysis";
 import ResultsPage from "@/pages/results";
@@ -15,7 +14,7 @@ function Router() {
     <Switch>
       <Route path="/" component={HomePage} />
       <Route path="/analysis" component={AnalysisPage} />
-      <Route path="/results" component={ResultsPage} />
+      <Route path="/results/:id" component={ResultsPage} />
       <Route path="/settings" component={SettingsPage} />
       <Route component={NotFound} />
     </Switch>
