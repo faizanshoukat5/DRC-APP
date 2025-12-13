@@ -22,7 +22,7 @@ interface MobileLayoutProps {
 
 export function MobileLayout({ children, title, showBack }: MobileLayoutProps) {
   const [location] = useLocation();
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
 
   const getUserInitials = () => {
     if (user?.firstName && user?.lastName) {
@@ -77,11 +77,18 @@ export function MobileLayout({ children, title, showBack }: MobileLayoutProps) {
                   </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem asChild>
-                  <a href="/api/logout" className="cursor-pointer">
-                    <LogOut className="mr-2 h-4 w-4" />
-                    <span>Log out</span>
-                  </a>
+                <DropdownMenuItem
+                  onSelect={async (event) => {
+                    event.preventDefault();
+                    try {
+                      await signOut();
+                    } catch (error) {
+                      console.error("Failed to sign out", error);
+                    }
+                  }}
+                >
+                  <LogOut className="mr-2 h-4 w-4" />
+                  <span>Log out</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

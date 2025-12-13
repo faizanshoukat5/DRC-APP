@@ -16,35 +16,37 @@ export async function apiRequest(
     method,
     headers: data ? { "Content-Type": "application/json" } : {},
     body: data ? JSON.stringify(data) : undefined,
-    credentials: "include",
   });
 
   await throwIfResNotOk(res);
   return res;
 }
 
-type UnauthorizedBehavior = "returnNull" | "throw";
-export const getQueryFn: <T>(options: {
-  on401: UnauthorizedBehavior;
-}) => QueryFunction<T> =
-  ({ on401: unauthorizedBehavior }) =>
-  async ({ queryKey }) => {
-    const res = await fetch(queryKey.join("/") as string, {
-      credentials: "include",
-    });
+export const defaultQueryFn: QueryFunction = async ({ queryKey }) => {
+  const [resource, queryParams] = queryKey;
+  const url =
+    typeof resource === "string"
+      ? resource
+      : Array.isArray(queryKey)
+        ? queryKey.filter((segment) => typeof segment === "string").join("/")
+        : String(resource);
 
-    if (unauthorizedBehavior === "returnNull" && res.status === 401) {
-      return null;
-    }
+  const requestUrl =
+    queryParams && typeof queryParams === "object"
+      ? `${url}?${new URLSearchParams(queryParams as Record<string, string>)}`
+      : url;
 
-    await throwIfResNotOk(res);
-    return await res.json();
-  };
+  const res = await fetch(requestUrl);
+  await throwIfResNotOk(res);
+
+  const contentType = res.headers.get("content-type") ?? "";
+  return contentType.includes("application/json") ? res.json() : res.text();
+};
 
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      queryFn: getQueryFn({ on401: "throw" }),
+      queryFn: defaultQueryFn,
       refetchInterval: false,
       refetchOnWindowFocus: false,
       staleTime: Infinity,
