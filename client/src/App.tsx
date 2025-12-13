@@ -10,9 +10,13 @@ import AnalysisPage from "@/pages/analysis";
 import ResultsPage from "@/pages/results";
 import SettingsPage from "@/pages/settings";
 import LandingPage from "@/pages/landing";
+import PatientDashboard from "@/pages/patient-dashboard";
+import DoctorDashboard from "@/pages/doctor-dashboard";
+import AdminDashboard from "@/pages/admin-dashboard";
+import PendingDoctor from "@/pages/pending-doctor";
 
 function Router() {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, role, doctorStatus } = useAuth();
 
   if (isLoading) {
     return (
@@ -22,18 +26,57 @@ function Router() {
     );
   }
 
+  if (!isAuthenticated) {
+    return (
+      <Switch>
+        <Route path="/" component={LandingPage} />
+        <Route component={NotFound} />
+      </Switch>
+    );
+  }
+
+  if (role === "patient") {
+    return (
+      <Switch>
+        <Route path="/" component={PatientDashboard} />
+        <Route path="/analysis" component={AnalysisPage} />
+        <Route path="/results/:id" component={ResultsPage} />
+        <Route path="/settings" component={SettingsPage} />
+        <Route component={NotFound} />
+      </Switch>
+    );
+  }
+
+  if (role === "doctor") {
+    if (doctorStatus !== "approved") {
+      return (
+        <Switch>
+          <Route path="/" component={PendingDoctor} />
+          <Route component={PendingDoctor} />
+        </Switch>
+      );
+    }
+
+    return (
+      <Switch>
+        <Route path="/" component={DoctorDashboard} />
+        <Route path="/results/:id" component={ResultsPage} />
+        <Route component={NotFound} />
+      </Switch>
+    );
+  }
+
+  if (role === "admin") {
+    return (
+      <Switch>
+        <Route path="/" component={AdminDashboard} />
+        <Route component={NotFound} />
+      </Switch>
+    );
+  }
+
   return (
     <Switch>
-      {isAuthenticated ? (
-        <>
-          <Route path="/" component={HomePage} />
-          <Route path="/analysis" component={AnalysisPage} />
-          <Route path="/results/:id" component={ResultsPage} />
-          <Route path="/settings" component={SettingsPage} />
-        </>
-      ) : (
-        <Route path="/" component={LandingPage} />
-      )}
       <Route component={NotFound} />
     </Switch>
   );

@@ -81,18 +81,53 @@ app.use((req, res, next) => {
     await setupVite(httpServer, app);
   }
 
-  // ALWAYS serve the app on the port specified in the environment variable PORT
-  // Other ports are firewalled. Default to 5000 if not specified.
-  // this serves both the API and the client.
-  // It is the only port that is not firewalled.
-  const port = parseInt(process.env.PORT || "5000", 10);
-  httpServer.listen(
-    {
-      port,
-      host: "127.0.0.1",
-    },
-    () => {
-      log(`serving on port ${port}`);
-    },
-  );
+  // Try to serve on the PORT (defaults to 5000), but if it's busy
+  // try subsequent ports up to a limit so dev machines don't fail.
+  const basePort = parseInt(process.env.PORT || "5000", 10);
+  const maxAttempts = 10;
+
+  async function tryListen(startPort: number) {
+    for (let i = 0; i < maxAttempts; i++) {
+      const tryPort = startPort + i;
+      try {
+        await new Promise<void>((resolve, reject) => {
+          const onError = (err: NodeJS.ErrnoException) => {
+            httpServer.removeListener("listening", onListening);
+            reject(err);
+          };
+
+          const onListening = () => {
+            httpServer.removeListener("error", onError);
+            resolve();
+          };
+
+          httpServer.once("error", onError);
+          httpServer.once("listening", onListening);
+          httpServer.listen({ port: tryPort, host: "127.0.0.1" });
+        });
+
+        log(`serving on port ${tryPort}`);
+        return tryPort;
+      } catch (err: any) {
+        if (err && (err.code === "EADDRINUSE" || err.message?.includes("EADDRINUSE"))) {
+          log(`port ${tryPort} in use, trying next port...`);
+          // close any partial server state before next attempt
+          try {
+            httpServer.close();
+          } catch (_) {}
+          continue;
+        }
+        // unexpected error: rethrow
+        throw err;
+      }
+    }
+    throw new Error(`Could not bind to any port in range ${startPort}-${startPort + maxAttempts - 1}`);
+  }
+
+  try {
+    await tryListen(basePort);
+  } catch (err: any) {
+    console.error("Failed to start server:", err);
+    process.exit(1);
+  }
 })();

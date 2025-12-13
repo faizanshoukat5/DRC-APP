@@ -1,6 +1,6 @@
 import { FormEvent, useState } from "react";
 import { motion } from "framer-motion";
-import { ScanEye, Shield, Zap, Database } from "lucide-react";
+import { ScanEye, Shield, Zap, Database, Stethoscope, UserRound, Building2 } from "lucide-react";
 
 import { MobileLayout } from "@/components/mobile-layout";
 import { Button } from "@/components/ui/button";
@@ -8,15 +8,22 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/hooks/useAuth";
+import { cn } from "@/lib/utils";
 
 export default function LandingPage() {
   const { signInWithPassword, signUpWithPassword, isLoading, lastError } = useAuth();
   const [mode, setMode] = useState<"signin" | "signup">("signin");
+  const [role, setRole] = useState<"patient" | "doctor">("patient");
   const [formState, setFormState] = useState({
     email: "",
     password: "",
-    firstName: "",
-    lastName: "",
+    name: "",
+    phone: "",
+    dateOfBirth: "",
+    gender: "",
+    address: "",
+    licenseNumber: "",
+    specialty: "",
   });
   const [feedback, setFeedback] = useState<string | null>(null);
 
@@ -28,11 +35,19 @@ export default function LandingPage() {
       if (mode === "signin") {
         await signInWithPassword(formState.email, formState.password);
       } else {
-        await signUpWithPassword(formState.email, formState.password, {
-          firstName: formState.firstName,
-          lastName: formState.lastName,
+        await signUpWithPassword({
+          email: formState.email,
+          password: formState.password,
+          role,
+          name: formState.name,
+          phone: formState.phone || undefined,
+          dateOfBirth: formState.dateOfBirth || undefined,
+          gender: formState.gender || undefined,
+          address: formState.address || undefined,
+          licenseNumber: role === "doctor" ? formState.licenseNumber : undefined,
+          specialty: role === "doctor" ? formState.specialty : undefined,
         });
-        setFeedback("Account created. Please check your inbox to confirm your email if required.");
+        setFeedback(role === "doctor" ? "Doctor account created. Await admin approval." : "Account created. You are signed in.");
       }
     } catch (error) {
       console.error("Authentication error", error);
@@ -42,7 +57,7 @@ export default function LandingPage() {
   const isSubmitDisabled =
     !formState.email ||
     !formState.password ||
-    (mode === "signup" && (!formState.firstName || !formState.lastName));
+    (mode === "signup" && (!formState.name || (role === "doctor" && (!formState.licenseNumber || !formState.specialty))));
 
   return (
     <MobileLayout title="RetinaAI">
@@ -124,28 +139,111 @@ export default function LandingPage() {
           </div>
 
           {mode === "signup" && (
-            <div className="grid grid-cols-2 gap-3">
+            <>
               <div className="space-y-2">
-                <Label htmlFor="firstName">First name</Label>
+                <Label htmlFor="name">Full name</Label>
                 <Input
-                  id="firstName"
-                  value={formState.firstName}
-                  onChange={(event) => setFormState((prev) => ({ ...prev, firstName: event.target.value }))}
-                  placeholder="Ada"
+                  id="name"
+                  value={formState.name}
+                  onChange={(event) => setFormState((prev) => ({ ...prev, name: event.target.value }))}
+                  placeholder="Dr. Ada Lovelace"
                   required
                 />
               </div>
+
               <div className="space-y-2">
-                <Label htmlFor="lastName">Last name</Label>
+                <Label>Role</Label>
+                <div className="grid grid-cols-2 gap-2">
+                  {[{ value: "patient", label: "Patient", icon: UserRound }, { value: "doctor", label: "Doctor", icon: Stethoscope }].map((option) => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => setRole(option.value as "patient" | "doctor")}
+                      className={cn(
+                        "flex items-center gap-2 rounded-lg border p-3 text-left transition",
+                        role === option.value ? "border-primary bg-primary/5" : "border-slate-200 hover:border-primary/50",
+                      )}
+                    >
+                      <option.icon className="h-4 w-4" />
+                      <span className="text-sm font-medium capitalize">{option.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="phone">Phone</Label>
                 <Input
-                  id="lastName"
-                  value={formState.lastName}
-                  onChange={(event) => setFormState((prev) => ({ ...prev, lastName: event.target.value }))}
-                  placeholder="Lovelace"
-                  required
+                  id="phone"
+                  value={formState.phone}
+                  onChange={(event) => setFormState((prev) => ({ ...prev, phone: event.target.value }))}
+                  placeholder="+1 555 123 4567"
                 />
               </div>
-            </div>
+
+              {role === "patient" && (
+                <div className="space-y-2">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-2">
+                      <Label htmlFor="dob">Date of birth</Label>
+                      <Input
+                        id="dob"
+                        type="date"
+                        value={formState.dateOfBirth}
+                        onChange={(event) => setFormState((prev) => ({ ...prev, dateOfBirth: event.target.value }))}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="gender">Gender</Label>
+                      <Input
+                        id="gender"
+                        value={formState.gender}
+                        onChange={(event) => setFormState((prev) => ({ ...prev, gender: event.target.value }))}
+                        placeholder="F / M / Other"
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="address">Address</Label>
+                    <Input
+                      id="address"
+                      value={formState.address}
+                      onChange={(event) => setFormState((prev) => ({ ...prev, address: event.target.value }))}
+                      placeholder="123 Retina Lane"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {role === "doctor" && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <Label htmlFor="license">License number</Label>
+                    <Input
+                      id="license"
+                      value={formState.licenseNumber}
+                      onChange={(event) => setFormState((prev) => ({ ...prev, licenseNumber: event.target.value }))}
+                      placeholder="MED-12345"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="specialty">Specialty</Label>
+                    <Input
+                      id="specialty"
+                      value={formState.specialty}
+                      onChange={(event) => setFormState((prev) => ({ ...prev, specialty: event.target.value }))}
+                      placeholder="Ophthalmology"
+                      required
+                    />
+                  </div>
+                  <div className="col-span-1 md:col-span-2 text-xs text-slate-500 flex items-center gap-2">
+                    <Building2 className="h-4 w-4" />
+                    Doctor accounts require admin approval before accessing diagnostics.
+                  </div>
+                </div>
+              )}
+            </>
           )}
 
           <div className="space-y-2">
@@ -162,7 +260,7 @@ export default function LandingPage() {
           </div>
 
           {(lastError || feedback) && (
-            <p className="text-sm text-center text-red-500 min-h-[1.5rem]">
+            <p className={cn("text-sm text-center min-h-[1.5rem]", lastError ? "text-red-500" : "text-emerald-600") }>
               {lastError || feedback}
             </p>
           )}

@@ -2,6 +2,45 @@ import { pgTable, text, serial, timestamp, integer, jsonb } from "drizzle-orm/pg
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
+export const userRoleEnum = z.enum(["patient", "doctor", "admin"]);
+export type UserRole = z.infer<typeof userRoleEnum>;
+
+export const doctorStatusEnum = z.enum(["pending", "approved", "rejected"]);
+export type DoctorStatus = z.infer<typeof doctorStatusEnum>;
+
+export const profileSchema = z.object({
+  id: z.string(),
+  email: z.string().email(),
+  role: userRoleEnum,
+  status: doctorStatusEnum,
+  name: z.string().min(1),
+  phone: z.string().optional(),
+  dateOfBirth: z.string().optional(),
+  gender: z.string().optional(),
+  address: z.string().optional(),
+  licenseNumber: z.string().optional(),
+  specialty: z.string().optional(),
+  createdAt: z.string().optional(),
+  updatedAt: z.string().optional(),
+});
+
+export const upsertProfileSchema = profileSchema.pick({
+  email: true,
+  role: true,
+  name: true,
+  phone: true,
+  dateOfBirth: true,
+  gender: true,
+  address: true,
+  licenseNumber: true,
+  specialty: true,
+}).extend({
+  id: z.string().optional(),
+  status: doctorStatusEnum.optional(),
+});
+
+export type Profile = z.infer<typeof profileSchema>;
+
 export const scans = pgTable("scans", {
   id: serial("id").primaryKey(),
   patientId: text("patient_id").notNull(),

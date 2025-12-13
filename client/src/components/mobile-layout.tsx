@@ -25,12 +25,12 @@ export function MobileLayout({ children, title, showBack }: MobileLayoutProps) {
   const { user, signOut } = useAuth();
 
   const getUserInitials = () => {
-    if (user?.firstName && user?.lastName) {
-      return `${user.firstName[0]}${user.lastName[0]}`.toUpperCase();
+    if (user?.name) {
+      const parts = user.name.trim().split(" ");
+      if (parts.length >= 2) return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+      return parts[0][0]?.toUpperCase() ?? "U";
     }
-    if (user?.email) {
-      return user.email[0].toUpperCase();
-    }
+    if (user?.email) return user.email[0].toUpperCase();
     return "U";
   };
 
@@ -68,9 +68,7 @@ export function MobileLayout({ children, title, showBack }: MobileLayoutProps) {
               <DropdownMenuContent align="end" className="w-56">
                 <DropdownMenuLabel>
                   <div className="flex flex-col space-y-1">
-                    <p className="text-sm font-medium leading-none">
-                      {user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : "Account"}
-                    </p>
+                    <p className="text-sm font-medium leading-none">{user.name ?? "Account"}</p>
                     <p className="text-xs leading-none text-muted-foreground">
                       {user.email}
                     </p>
