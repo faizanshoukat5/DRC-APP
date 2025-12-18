@@ -98,28 +98,30 @@ export function useAuth() {
 
     loadInitialUser();
 
-    const { data: authListener } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      if (!isMounted) return;
-      if (!session?.user) {
-        setUser(null);
-        setIsLoading(false);
-        return;
-      }
+    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
+      (async () => {
+        if (!isMounted) return;
+        if (!session?.user) {
+          setUser(null);
+          setIsLoading(false);
+          return;
+        }
 
-      try {
-        const profile = await fetchProfile();
-        const authUser = mapAuthUser(session.user);
-        if (profile && authUser) {
-          setUser({ ...profile, email: profile.email ?? authUser.email, profileImageUrl: authUser.metadata?.avatar_url });
-        } else {
+        try {
+          const profile = await fetchProfile();
+          const authUser = mapAuthUser(session.user);
+          if (profile && authUser) {
+            setUser({ ...profile, email: profile.email ?? authUser.email, profileImageUrl: authUser.metadata?.avatar_url });
+          } else {
+            setUser(null);
+          }
+        } catch (profileError: any) {
+          setLastError(profileError.message ?? "Failed to load profile");
           setUser(null);
         }
-      } catch (profileError: any) {
-        setLastError(profileError.message ?? "Failed to load profile");
-        setUser(null);
-      }
 
-      setIsLoading(false);
+        setIsLoading(false);
+      })();
     });
 
     return () => {
@@ -228,12 +230,22 @@ export function useAuth() {
   );
 
   const signOut = useCallback(async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) {
-      setLastError(error.message);
+    setIsLoading(true);
+    setLastError(null);
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        setLastError(error.message);
+        setIsLoading(false);
+        throw error;
+      }
+      setUser(null);
+      setIsLoading(false);
+    } catch (error: any) {
+      setLastError(error.message ?? "Failed to sign out");
+      setIsLoading(false);
       throw error;
     }
-    setUser(null);
   }, []);
 
   const state: AuthState = useMemo(
