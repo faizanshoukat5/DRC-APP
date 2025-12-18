@@ -2,7 +2,7 @@ import { Link } from "wouter";
 import { MobileLayout } from "@/components/mobile-layout";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { ScanEye, History, ImageUp, Sparkles } from "lucide-react";
+import { ScanEye, History, Sparkles } from "lucide-react";
 
 export default function PatientDashboard() {
   return (
@@ -19,7 +19,7 @@ export default function PatientDashboard() {
           </div>
           <div className="flex-1">
             <p className="text-sm text-slate-500">New screening</p>
-            <p className="font-semibold text-slate-900">Capture or upload retinal image</p>
+            <p className="font-semibold text-slate-900">Capture retinal image</p>
           </div>
           <Link href="/analysis">
             <Button>Start</Button>
@@ -27,13 +27,6 @@ export default function PatientDashboard() {
         </Card>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <Card className="p-4 space-y-2">
-            <div className="flex items-center gap-2 text-slate-500">
-              <ImageUp className="h-4 w-4" />
-              <span className="text-xs uppercase tracking-wide">AI analysis</span>
-            </div>
-            <p className="text-sm text-slate-700">Upload images for immediate grading with heatmaps.</p>
-          </Card>
           <Card className="p-4 space-y-2">
             <div className="flex items-center gap-2 text-slate-500">
               <History className="h-4 w-4" />

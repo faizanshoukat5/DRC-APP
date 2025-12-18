@@ -1,7 +1,7 @@
 import { MobileLayout } from "@/components/mobile-layout";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Info, Share2, Download, ChevronUp } from "lucide-react";
+import { Info, Share2, Download, ChevronUp, Image as ImageIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
@@ -11,6 +11,8 @@ import { useQuery } from "@tanstack/react-query";
 import { getScan } from "@/lib/api";
 import { useRoute } from "wouter";
 import { format } from "date-fns";
+import html2canvas from "html2canvas";
+import { jsPDF } from "jspdf";
 
 import baseImage from '@assets/generated_images/high-quality_retinal_fundus_image_for_medical_analysis..png';
 import heatmapImage from '@assets/generated_images/retinal_fundus_image_with_grad-cam_heatmap_overlay..png';
@@ -18,15 +20,70 @@ import heatmapImage from '@assets/generated_images/retinal_fundus_image_with_gra
 export default function ResultsPage() {
   const [, params] = useRoute("/results/:id");
   const scanId = params?.id ? parseInt(params.id) : undefined;
-  
+
   const [showHeatmap, setShowHeatmap] = useState(true);
   const [showDetails, setShowDetails] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+  const reportRef = useRef<HTMLDivElement>(null);
 
   const { data: scan, isLoading } = useQuery({
     queryKey: ["scan", scanId],
     queryFn: () => getScan(scanId!),
     enabled: !!scanId,
   });
+
+  const exportPDF = async () => {
+    if (!reportRef.current || !scan) return;
+    try {
+      setIsExporting(true);
+      const canvas = await html2canvas(reportRef.current, {
+        scale: 2,
+        backgroundColor: '#ffffff',
+      });
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4',
+      });
+      const imgWidth = 210;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      let heightLeft = imgHeight;
+      let position = 0;
+
+      const imgData = canvas.toDataURL('image/png');
+      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+      heightLeft -= 297;
+
+      while (heightLeft >= 0) {
+        position = heightLeft - imgHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+        heightLeft -= 297;
+      }
+
+      const filename = `Report_${scan.patientId}_${format(new Date(scan.timestamp), 'yyyy-MM-dd')}.pdf`;
+      pdf.save(filename);
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const exportImage = async () => {
+    if (!reportRef.current || !scan) return;
+    try {
+      setIsExporting(true);
+      const canvas = await html2canvas(reportRef.current, {
+        scale: 2,
+        backgroundColor: '#ffffff',
+      });
+      const link = document.createElement('a');
+      link.href = canvas.toDataURL('image/png');
+      link.download = `Report_${scan.patientId}_${format(new Date(scan.timestamp), 'yyyy-MM-dd')}.png`;
+      link.click();
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   if (isLoading || !scan) {
     return (
@@ -84,7 +141,7 @@ export default function ResultsPage() {
 
         {/* Diagnosis Card */}
         <div className="flex-1 -mt-6 relative z-10 px-4 space-y-4">
-          <Card className="p-6 shadow-xl border-slate-100 bg-white">
+          <Card ref={reportRef} className="p-6 shadow-xl border-slate-100 bg-white">
             <div className="flex justify-between items-start mb-6">
               <div>
                  <Badge variant="outline" className="mb-2 text-xs border-slate-200 text-slate-500" data-testid="badge-scan-info">
@@ -126,11 +183,22 @@ export default function ResultsPage() {
             </div>
 
             <div className="grid grid-cols-2 gap-3">
-              <Button variant="outline" className="w-full gap-2 text-xs" data-testid="button-save-report">
-                <Download className="w-4 h-4" /> Save Report
+              <Button
+                variant="outline"
+                className="w-full gap-2 text-xs"
+                onClick={exportPDF}
+                disabled={isExporting}
+                data-testid="button-save-report"
+              >
+                <Download className="w-4 h-4" /> {isExporting ? 'Exporting...' : 'PDF Report'}
               </Button>
-              <Button className="w-full gap-2 text-xs" data-testid="button-share">
-                <Share2 className="w-4 h-4" /> Share
+              <Button
+                variant="outline"
+                className="w-full gap-2 text-xs"
+                onClick={exportImage}
+                disabled={isExporting}
+              >
+                <ImageIcon className="w-4 h-4" /> Export Image
               </Button>
             </div>
           </Card>
