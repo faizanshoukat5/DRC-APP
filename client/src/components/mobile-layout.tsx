@@ -1,6 +1,6 @@
 import { ReactNode } from "react";
 import { Link, useLocation } from "wouter";
-import { Home, History, Settings, ScanEye, Menu, LogOut } from "lucide-react";
+import { Home, History, Settings, ScanEye, Menu, LogOut, HelpCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -75,6 +75,19 @@ export function MobileLayout({ children, title, showBack }: MobileLayoutProps) {
                   </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
+                <Link href="/">
+                  <DropdownMenuItem>
+                    <Home className="mr-2 h-4 w-4" />
+                    <span>Home</span>
+                  </DropdownMenuItem>
+                </Link>
+                <Link href="/faq">
+                  <DropdownMenuItem>
+                    <HelpCircle className="mr-2 h-4 w-4" />
+                    <span>FAQ</span>
+                  </DropdownMenuItem>
+                </Link>
+                <DropdownMenuSeparator />
                 <DropdownMenuItem
                   onSelect={async (event) => {
                     event.preventDefault();
@@ -91,9 +104,31 @@ export function MobileLayout({ children, title, showBack }: MobileLayoutProps) {
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
-            <button className="p-2 -mr-2 hover:bg-slate-100 rounded-full text-slate-500">
-              <Menu className="w-5 h-5" />
-            </button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="p-2 -mr-2 hover:bg-slate-100 rounded-full text-slate-500">
+                  <Menu className="w-5 h-5" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel>
+                  <p className="text-sm font-medium leading-none">Menu</p>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <Link href="/">
+                  <DropdownMenuItem>
+                    <Home className="mr-2 h-4 w-4" />
+                    <span>Home</span>
+                  </DropdownMenuItem>
+                </Link>
+                <Link href="/faq">
+                  <DropdownMenuItem>
+                    <HelpCircle className="mr-2 h-4 w-4" />
+                    <span>FAQ</span>
+                  </DropdownMenuItem>
+                </Link>
+              </DropdownMenuContent>
+            </DropdownMenu>
           )}
         </header>
 

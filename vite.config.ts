@@ -1,12 +1,38 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
+import { VitePWA } from "vite-plugin-pwa";
 import path from "path";
 
 export default defineConfig({
   plugins: [
     react(),
     tailwindcss(),
+    // PWA plugin: install with `npm install -D vite-plugin-pwa`
+    VitePWA({
+      registerType: "autoUpdate",
+      includeAssets: ["favicon.png"],
+      manifest: {
+        name: "RetinaAI - DR Detection",
+        short_name: "RetinaAI",
+        start_url: "/",
+        display: "standalone",
+        background_color: "#ffffff",
+        theme_color: "#06b6d4",
+        icons: [
+          {
+            src: "/favicon.png",
+            sizes: "192x192",
+            type: "image/png"
+          },
+          {
+            src: "/favicon.png",
+            sizes: "512x512",
+            type: "image/png"
+          }
+        ]
+      }
+    }),
   ],
   resolve: {
     alias: {
@@ -26,7 +52,8 @@ export default defineConfig({
     emptyOutDir: true,
   },
   server: {
-    host: "127.0.0.1",
+    // Bind to all interfaces to allow LAN device access when running locally
+    host: "0.0.0.0",
     allowedHosts: true,
     fs: {
       strict: true,
