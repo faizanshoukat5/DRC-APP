@@ -16,6 +16,7 @@ import AdminDashboard from "@/pages/admin-dashboard";
 import PendingDoctor from "@/pages/pending-doctor";
 import SelectDoctor from "@/pages/select-doctor";
 import FAQPage from "@/pages/faq";
+import HistoryPage from "@/pages/history";
 
 function Router() {
   const { isAuthenticated, isLoading, role, doctorStatus } = useAuth();
@@ -44,6 +45,7 @@ function Router() {
         <Route path="/" component={PatientDashboard} />
         <Route path="/patient" component={PatientDashboard} />
         <Route path="/select-doctor" component={SelectDoctor} />
+        <Route path="/results" component={HistoryPage} />
         <Route path="/results/:id" component={ResultsPage} />
         <Route path="/settings" component={SettingsPage} />
         <Route path="/faq" component={FAQPage} />
@@ -65,7 +67,9 @@ function Router() {
     return (
       <Switch>
         <Route path="/" component={DoctorDashboard} />
+        <Route path="/results" component={HistoryPage} />
         <Route path="/results/:id" component={ResultsPage} />
+        <Route path="/settings" component={SettingsPage} />
         <Route path="/faq" component={FAQPage} />
         <Route component={NotFound} />
       </Switch>
@@ -76,6 +80,9 @@ function Router() {
     return (
       <Switch>
         <Route path="/" component={AdminDashboard} />
+        <Route path="/results" component={HistoryPage} />
+        <Route path="/results/:id" component={ResultsPage} />
+        <Route path="/settings" component={SettingsPage} />
         <Route path="/faq" component={FAQPage} />
         <Route component={NotFound} />
       </Switch>

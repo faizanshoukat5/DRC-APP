@@ -241,6 +241,8 @@ export function useAuth() {
       }
       setUser(null);
       setIsLoading(false);
+      // Redirect to homepage after logout
+      window.location.href = "/";
     } catch (error: any) {
       setLastError(error.message ?? "Failed to sign out");
       setIsLoading(false);
