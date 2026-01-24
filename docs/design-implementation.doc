@@ -1,0 +1,230 @@
+﻿{\rtf1\ansi\deff0
+# Design Implementation & Component Documentation\line
+\line
+## 1) Scope\line
+This document covers the full RetinaAI project: UI design system, layout patterns, page components, shared UI primitives, data flows, and backend endpoints.\line
+\line
+## 2) Project Architecture (High-Level)\line
+- Client: Vite + React + TypeScript, Tailwind CSS, shadcn/ui-style primitives, Wouter routing, TanStack Query.\line
+- Server: Express API with Supabase admin client and storage adapter.\line
+- Shared: Zod schemas and Drizzle table definitions.\line
+\line
+Key files:\line
+- App routing + providers: [client/src/App.tsx](client/src/App.tsx)\line
+- Global styles + tokens: [client/src/index.css](client/src/index.css)\line
+- UI layout shell: [client/src/components/mobile-layout.tsx](client/src/components/mobile-layout.tsx)\line
+- API client helpers: [client/src/lib/api.ts](client/src/lib/api.ts)\line
+- Auth hook: [client/src/hooks/useAuth.ts](client/src/hooks/useAuth.ts)\line
+- Server routes: [server/routes.ts](server/routes.ts)\line
+- Storage layer: [server/storage.ts](server/storage.ts)\line
+- Schema: [shared/schema.ts](shared/schema.ts)\line
+\line
+## 3) Design System Implementation\line
+### 3.1 Color, typography, and radius tokens\line
+Defined in [client/src/index.css](client/src/index.css). Highlights:\line
+- Clean clinical palette (primary medical blue), slate backgrounds, semantic severity colors.\line
+- Font stack: `Plus Jakarta Sans` and `JetBrains Mono`.\line
+- Corner radius scale driven by the `--radius` token.\line
+\line
+### 3.2 Layout strategy\line
+- Primary UX is mobile-first with a centered, device-like container on desktop.\line
+- `MobileLayout` provides header, scroll container, and bottom nav for authenticated users.\line
+- Bottom nav is suppressed on analysis screens.\line
+\line
+Reference: [client/src/components/mobile-layout.tsx](client/src/components/mobile-layout.tsx)\line
+\line
+### 3.3 Animation\line
+- Subtle transitions and reveal effects via `framer-motion` in landing and dashboard pages.\line
+\line
+## 4) Routing & Access Control\line
+Routing is role-based inside `Router()`:\line
+- Unauthenticated: Landing, FAQ.\line
+- Patient: Dashboard, select doctor, results, settings, FAQ.\line
+- Doctor: Pending approval gate, dashboard, results, settings, FAQ.\line
+- Admin: Pending doctor approvals, results, settings, FAQ.\line
+\line
+Reference: [client/src/App.tsx](client/src/App.tsx)\line
+\line
+## 5) Core Layout Component\line
+### `MobileLayout`\line
+Responsibilities:\line
+- App header with title/logo, user menu, and optional back button.\line
+- Content container with scroll handling.\line
+- Authenticated bottom navigation (Home, History, Settings).\line
+\line
+Reference: [client/src/components/mobile-layout.tsx](client/src/components/mobile-layout.tsx)\line
+\line
+## 6) Page Components (Feature Screens)\line
+### Landing / Auth\line
+- Hero, feature cards, patient & doctor flow summaries.\line
+- Combined sign-in/sign-up form.\line
+- Uses `useAuth()` for auth flows.\line
+\line
+Reference: [client/src/pages/landing.tsx](client/src/pages/landing.tsx)\line
+\line
+### Home\line
+- Main â€œNew Diagnosisâ€ CTA with recent scans list.\line
+- Uses `getRecentScans` via TanStack Query.\line
+\line
+Reference: [client/src/pages/home.tsx](client/src/pages/home.tsx)\line
+\line
+### Patient Dashboard\line
+- Doctor assignment card, stats, latest scan summary, and scan list.\line
+- Redirects to doctor selection if no doctor is assigned.\line
+\line
+Reference: [client/src/pages/patient-dashboard.tsx](client/src/pages/patient-dashboard.tsx)\line
+\line
+### Doctor Dashboard\line
+- Patient list, upload workflow, recent reports.\line
+- Upload calls `/api/doctor/upload` with FormData and Supabase token.\line
+\line
+Reference: [client/src/pages/doctor-dashboard.tsx](client/src/pages/doctor-dashboard.tsx)\line
+\line
+### Admin Dashboard\line
+- Pending doctor approvals with approve/reject actions.\line
+\line
+Reference: [client/src/pages/admin-dashboard.tsx](client/src/pages/admin-dashboard.tsx)\line
+\line
+### Analysis\line
+- Animated â€œanalysisâ€ steps, simulated progress, and scan creation.\line
+- Uses `createScan()` (note: currently stubbed data in client).\line
+\line
+Reference: [client/src/pages/analysis.tsx](client/src/pages/analysis.tsx)\line
+\line
+### Results\line
+- Shows original and heatmap overlays (static assets), diagnosis, confidence.\line
+- Export to PDF and PNG (html2canvas + jsPDF).\line
+\line
+Reference: [client/src/pages/results.tsx](client/src/pages/results.tsx)\line
+\line
+### History\line
+- List of scans with severity chips.\line
+\line
+Reference: [client/src/pages/history.tsx](client/src/pages/history.tsx)\line
+\line
+### Select Doctor\line
+- Search and select approved doctors.\line
+- Uses `getApprovedDoctors`, `selectDoctor`, and `getMyDoctor`.\line
+\line
+Reference: [client/src/pages/select-doctor.tsx](client/src/pages/select-doctor.tsx)\line
+\line
+### Settings\line
+- UI controls for inference mode, sync preferences, dark mode toggle.\line
+\line
+Reference: [client/src/pages/settings.tsx](client/src/pages/settings.tsx)\line
+\line
+### FAQ\line
+- Category accordion with common questions.\line
+\line
+Reference: [client/src/pages/faq.tsx](client/src/pages/faq.tsx)\line
+\line
+### Pending Doctor\line
+- Waiting screen until admin approval.\line
+\line
+Reference: [client/src/pages/pending-doctor.tsx](client/src/pages/pending-doctor.tsx)\line
+\line
+### Not Found\line
+- 404 friendly screen and return action.\line
+\line
+Reference: [client/src/pages/not-found.tsx](client/src/pages/not-found.tsx)\line
+\line
+## 7) Shared UI Components (Design Primitives)\line
+Located in [client/src/components/ui](client/src/components/ui). These are shadcn-style primitives with Tailwind styling:\line
+\line
+### Inputs & Forms\line
+- `Button`, `Input`, `Textarea`, `Checkbox`, `RadioGroup`, `Select`, `Switch`, `Slider`, `Label`, `Form`, `Field`, `InputGroup`, `InputOtp`.\line
+\line
+### Layout & Surfaces\line
+- `Card`, `Separator`, `Sheet`, `Drawer`, `Popover`, `HoverCard`, `Tooltip`, `ScrollArea`, `Resizable`, `Skeleton`, `Spinner`.\line
+\line
+### Navigation\line
+- `Tabs`, `Accordion`, `Menubar`, `NavigationMenu`, `Pagination`, `Breadcrumb`, `Sidebar`.\line
+\line
+### Feedback & Status\line
+- `Badge`, `Alert`, `Toast`, `Toaster`, `Progress`, `Sonner`.\line
+\line
+### Data Display\line
+- `Table`, `Chart`, `Avatar`, `Carousel`, `AspectRatio`.\line
+\line
+### Menus\line
+- `DropdownMenu`, `ContextMenu`, `Command`.\line
+\line
+Note: Not every primitive is used yet, but they form the UI toolkit.\line
+\line
+## 8) Hooks & Client Utilities\line
+- `useAuth()` manages Supabase auth and profile resolution.\line
+- `useIsMobile()` for responsive behavior.\line
+- `queryClient` and `defaultQueryFn` configure TanStack Query.\line
+\line
+References:\line
+- [client/src/hooks/useAuth.ts](client/src/hooks/useAuth.ts)\line
+- [client/src/hooks/use-mobile.tsx](client/src/hooks/use-mobile.tsx)\line
+- [client/src/lib/queryClient.ts](client/src/lib/queryClient.ts)\line
+\line
+## 9) API Layer (Client)\line
+- `getScans`, `getScan`, `getRecentScans`, `createScan`.\line
+- Doctor-patient relationships: `getApprovedDoctors`, `selectDoctor`, `getMyDoctor`, `getMyPatients`.\line
+- Adds Supabase Bearer token for protected endpoints.\line
+\line
+Reference: [client/src/lib/api.ts](client/src/lib/api.ts)\line
+\line
+## 10) Backend API (Server)\line
+### Authentication & Profiles\line
+- `GET /api/auth/me`\line
+- `POST /api/auth/profile` (post-sign-up profile creation)\line
+\line
+### Admin\line
+- `GET /api/admin/doctors/pending`\line
+- `POST /api/admin/doctors/:id/approve`\line
+- `POST /api/admin/doctors/:id/reject`\line
+\line
+### Doctorâ€“Patient Relationships\line
+- `GET /api/doctors/approved`\line
+- `POST /api/patient/select-doctor`\line
+- `GET /api/patient/my-doctor`\line
+- `GET /api/doctor/my-patients`\line
+\line
+### Scans\line
+- `GET /api/scans`\line
+- `GET /api/scans/recent`\line
+- `GET /api/scans/:id`\line
+- `POST /api/scans`\line
+- `GET /api/patients/:patientId/scans`\line
+- `POST /api/doctor/upload` (image upload + placeholder inference)\line
+\line
+Reference: [server/routes.ts](server/routes.ts)\line
+\line
+## 11) Data Model & Storage\line
+- `profiles` table: id, role, status, name, contact, medical license.\line
+- `scans` table: image URLs, diagnosis, severity, confidence, inference metadata.\line
+\line
+Reference: [shared/schema.ts](shared/schema.ts)\line
+\line
+Storage uses a Supabase admin client and maps DB rows to API shape.\line
+Reference: [server/storage.ts](server/storage.ts)\line
+\line
+## 12) Supabase Integration\line
+- Client: uses anon key for auth + profile fetch.\line
+- Server: uses service role (or anon as fallback) for privileged queries.\line
+\line
+References:\line
+- [client/src/lib/supabaseClient.ts](client/src/lib/supabaseClient.ts)\line
+- [server/supabaseClient.ts](server/supabaseClient.ts)\line
+\line
+## 13) Design Notes & Implementation Gaps\line
+- `Analysis` page currently generates a stub scan; real inference should replace client-side mock and move to server inference flow.\line
+- `Results` uses static assets for images; production should load actual scan image URLs.\line
+\line
+## 14) Component Usage Map (Quick Index)\line
+- Layout: `MobileLayout` â†’ all screens.\line
+- Auth: `LandingPage` + `useAuth()`.\line
+- Patient: `PatientDashboard`, `SelectDoctor`, `History`, `Results`.\line
+- Doctor: `DoctorDashboard`, `Results`, `History`.\line
+- Admin: `AdminDashboard`.\line
+\line
+## 15) Where to Extend\line
+- Add real inference pipeline in `POST /api/doctor/upload` and replace placeholder logic.\line
+- Connect `Results` images to scan URLs.\line
+- Add clinician notes and review workflows (both API and UI).\line
+\line
+}
