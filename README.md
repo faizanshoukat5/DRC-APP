@@ -160,14 +160,6 @@ If you're adding DB migrations, include them under `supabase/migrations/` and do
 
 ---
 
-## License & Contact
-
-This repository does not include an explicit license file. If you want to open-source this project, add a `LICENSE` file (for example MIT).
-
-For questions and support, contact the project maintainer.
-
----
-
 Last updated: 2026-01-28
 # RetinaAI — Diabetic Retinopathy Screening Platform
 
