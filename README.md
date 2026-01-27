@@ -450,11 +450,3 @@ Suggested PR checklist:
 ## 📄 Additional docs
 - Design and component documentation: `docs/design-implementation.md` and `docs/design-implementation.doc` 📁
 - Database migrations: `supabase/migrations/`
-
----
-
-If you'd like, I can:
-- generate a PDF of this README for distribution, or
-- add a `CONTRIBUTING.md` and a GitHub Actions workflow to run type checks and tests on PRs.
-
-Need me to create a PDF or add CI next? 🚀
