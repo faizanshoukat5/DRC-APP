@@ -39,8 +39,9 @@ function mapAuthUser(user: User | null): { id: string; email?: string; metadata:
   };
 }
 
-async function fetchProfile(): Promise<AuthProfile | null> {
-  const { data, error } = await supabase.from("profiles").select("*").maybeSingle();
+async function fetchProfile(userId?: string): Promise<AuthProfile | null> {
+  if (!userId) return null;
+  const { data, error } = await supabase.from("profiles").select("*").eq("id", userId).maybeSingle();
   if (error) {
     throw new Error(error.message);
   }
@@ -81,7 +82,7 @@ export function useAuth() {
         setUser(null);
       } else {
         try {
-          const profile = await fetchProfile();
+          const profile = await fetchProfile(data.user?.id);
           const authUser = mapAuthUser(data.user ?? null);
           if (profile && authUser) {
             setUser({ ...profile, email: profile.email ?? authUser.email, profileImageUrl: authUser.metadata?.avatar_url });
@@ -108,7 +109,7 @@ export function useAuth() {
         }
 
         try {
-          const profile = await fetchProfile();
+          const profile = await fetchProfile(session.user.id);
           const authUser = mapAuthUser(session.user);
           if (profile && authUser) {
             setUser({ ...profile, email: profile.email ?? authUser.email, profileImageUrl: authUser.metadata?.avatar_url });
@@ -142,7 +143,7 @@ export function useAuth() {
     }
 
     try {
-      const profile = await fetchProfile();
+      const profile = await fetchProfile(data.user?.id);
       const authUser = mapAuthUser(data.user);
       if (profile && authUser) {
         setUser({ ...profile, email: profile.email ?? authUser.email, profileImageUrl: authUser.metadata?.avatar_url });
@@ -209,7 +210,7 @@ export function useAuth() {
       }
 
       try {
-        const profile = await fetchProfile();
+        const profile = await fetchProfile(data.user?.id);
         const authUser = mapAuthUser(data.user);
         if (profile && authUser) {
           setUser({ ...profile, email: profile.email ?? authUser.email, profileImageUrl: authUser.metadata?.avatar_url });

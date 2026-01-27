@@ -396,11 +396,12 @@ export default function LandingPage() {
           transition={{ delay: 0.25 }}
           className="w-full"
         >
-          <Link href="/faq">
-            <a className="flex items-center justify-center gap-2 text-sm text-slate-500 hover:text-primary transition-colors">
-              <HelpCircle className="h-4 w-4" />
-              <span>Have questions? Check our FAQ</span>
-            </a>
+          <Link
+            href="/faq"
+            className="flex items-center justify-center gap-2 text-sm text-slate-500 hover:text-primary transition-colors"
+          >
+            <HelpCircle className="h-4 w-4" />
+            <span>Have questions? Check our FAQ</span>
           </Link>
         </motion.div>
       </div>

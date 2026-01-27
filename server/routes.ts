@@ -49,7 +49,8 @@ async function resolveUser(req: Request): Promise<RequestUser> {
   }
 
   const statusValue = (profile.status as string) ?? "pending";
-  if (!doctorStatusEnum.options.includes(statusValue)) {
+  const statusParse = doctorStatusEnum.safeParse(statusValue);
+  if (!statusParse.success) {
     throw Object.assign(new Error("Invalid status"), { status: 403 });
   }
 
@@ -57,7 +58,7 @@ async function resolveUser(req: Request): Promise<RequestUser> {
     id: profile.id,
     email: profile.email,
     role: profile.role,
-    status: statusValue,
+    status: statusParse.data,
     name: profile.name,
     phone: profile.phone ?? undefined,
     licenseNumber: profile.license_number ?? undefined,
@@ -83,7 +84,9 @@ async function resolveAuthUser(req: Request): Promise<{ id: string; email: strin
   };
 }
 
-function requireAuth(handler: (req: AuthedRequest, res: Response, next: NextFunction) => Promise<void> | void) {
+type AuthHandlerResult = void | Response | Promise<void | Response>;
+
+function requireAuth(handler: (req: AuthedRequest, res: Response, next: NextFunction) => AuthHandlerResult) {
   return async (req: Request, res: Response, next: NextFunction) => {
     try {
       const user = await resolveUser(req);

@@ -15,18 +15,21 @@ CREATE INDEX IF NOT EXISTS idx_doctor_patients_patient ON doctor_patients(patien
 ALTER TABLE doctor_patients ENABLE ROW LEVEL SECURITY;
 
 -- Policy: Allow authenticated users to read their own relationships
+DROP POLICY IF EXISTS "Users can view their own relationships" ON public.doctor_patients;
 CREATE POLICY "Users can view their own relationships" ON doctor_patients
   FOR SELECT USING (
     auth.uid() = doctor_id OR auth.uid() = patient_id
   );
 
 -- Policy: Allow patients to insert (select a doctor)
+DROP POLICY IF EXISTS "Patients can select doctors" ON public.doctor_patients;
 CREATE POLICY "Patients can select doctors" ON doctor_patients
   FOR INSERT WITH CHECK (
     auth.uid() = patient_id
   );
 
 -- Policy: Allow users to delete their own relationships
+DROP POLICY IF EXISTS "Users can delete their own relationships" ON public.doctor_patients;
 CREATE POLICY "Users can delete their own relationships" ON doctor_patients
   FOR DELETE USING (
     auth.uid() = patient_id
