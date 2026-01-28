@@ -84,16 +84,26 @@ export function useAuth() {
       setIsLoading(true);
       setLastError(null);
       
-      const { data, error } = await supabase.auth.getUser();
-      if (!isMounted) return;
-
-      if (error || !data.user) {
-        setUser(null);
-        setIsLoading(false);
-        return;
-      }
-
       try {
+        const { data, error } = await supabase.auth.getUser();
+        if (!isMounted) return;
+
+        if (error) {
+          // If refresh token is invalid, clear the session
+          if (error.message.includes('Refresh Token') || error.message.includes('Invalid token')) {
+            await supabase.auth.signOut();
+          }
+          setUser(null);
+          setIsLoading(false);
+          return;
+        }
+
+        if (!data.user) {
+          setUser(null);
+          setIsLoading(false);
+          return;
+        }
+
         const profile = await fetchProfile(data.user.id);
         if (profile) {
           setUser(profile);
@@ -101,6 +111,7 @@ export function useAuth() {
           setUser(null);
         }
       } catch (profileError: any) {
+        if (!isMounted) return;
         setLastError(profileError.message ?? 'Failed to load profile');
         setUser(null);
       }
@@ -109,8 +120,16 @@ export function useAuth() {
 
     loadInitialUser();
 
-    const { data: authListener } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!isMounted) return;
+      
+      // Handle token refresh errors
+      if (event === 'TOKEN_REFRESHED' && !session) {
+        await supabase.auth.signOut();
+        setUser(null);
+        setIsLoading(false);
+        return;
+      }
       
       if (!session?.user) {
         setUser(null);
@@ -126,6 +145,7 @@ export function useAuth() {
           setUser(null);
         }
       } catch (profileError: any) {
+        if (!isMounted) return;
         setLastError(profileError.message ?? 'Failed to load profile');
         setUser(null);
       }
