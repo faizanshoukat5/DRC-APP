@@ -26,7 +26,7 @@ export default function LandingScreen() {
     <SafeAreaView className="flex-1 bg-background">
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }} keyboardVerticalOffset={keyboardVerticalOffset}>
         <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
-          <ScrollView contentContainerClassName="pb-36" keyboardShouldPersistTaps="handled">
+          <ScrollView contentContainerClassName="pb-2" keyboardShouldPersistTaps="handled">
         {/* Top bar */}
         <View className="flex-row items-center justify-between px-6 pt-6">
           <View className="flex-row items-center">
@@ -164,7 +164,7 @@ export default function LandingScreen() {
           </Card>
         </View>
           </ScrollView>
-        </TouchableWithoutFeedback>
+          </TouchableWithoutFeedback>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
