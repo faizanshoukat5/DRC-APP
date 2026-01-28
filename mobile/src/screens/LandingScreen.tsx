@@ -30,8 +30,8 @@ export default function LandingScreen() {
         {/* Top bar */}
         <View className="flex-row items-center justify-between px-6 pt-6">
           <View className="flex-row items-center">
-            <View className="h-12 w-12 items-center justify-center rounded-xl bg-primary">
-              <Ionicons name="camera" size={22} color="white" />
+            <View className="h-12 w-12 items-center justify-center rounded-full bg-primary">
+              <Ionicons accessibilityLabel="RetinaAI logo" name="eye" size={22} color="white" />
             </View>
             <Text className="ml-3 text-lg font-bold text-foreground">RetinaAI</Text>
           </View>
@@ -105,18 +105,22 @@ export default function LandingScreen() {
               <View className="flex-row items-center justify-between mb-3">
                 <Text className="text-lg font-semibold text-foreground">{activeTab === 'signin' ? 'Sign in' : 'Sign up'}</Text>
                 <View className="flex-row items-center space-x-2">
-                  <TouchableOpacity
+                  <Button
+                    size="sm"
+                    variant={activeTab === 'signin' ? 'default' : 'outline'}
                     onPress={() => setActiveTab('signin')}
-                    className={`rounded-full px-3 py-1 ${activeTab === 'signin' ? 'border border-primary bg-primary/10' : 'border border-border bg-transparent'}`}
+                    className="rounded-full px-3"
                   >
-                    <Text className={`${activeTab === 'signin' ? 'text-primary font-medium' : 'text-muted-foreground'}`}>Sign in</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
+                    Sign in
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={activeTab === 'signup' ? 'default' : 'outline'}
                     onPress={() => setActiveTab('signup')}
-                    className={`rounded-full px-3 py-1 ${activeTab === 'signup' ? 'border border-primary bg-primary/10' : 'border border-border bg-transparent'}`}
+                    className="rounded-full px-3"
                   >
-                    <Text className={`${activeTab === 'signup' ? 'text-primary font-medium' : 'text-muted-foreground'}`}>Sign up</Text>
-                  </TouchableOpacity>
+                    Sign up
+                  </Button>
                 </View>
               </View>
 
@@ -132,6 +136,8 @@ export default function LandingScreen() {
 
                   <View className="mt-4">
                     <Button
+                      size="lg"
+                      variant="default"
                       onPress={async () => {
                         setLocalError(null);
                         if (!email.trim() || !password.trim()) return setLocalError('Please enter email and password');
@@ -142,7 +148,7 @@ export default function LandingScreen() {
                         }
                       }}
                       isLoading={isLoading}
-                      className="w-full rounded-xl py-4"
+                      className="w-full rounded-xl"
                     >
                       Sign in
                     </Button>
@@ -156,7 +162,7 @@ export default function LandingScreen() {
                 <>
                   <Text className="text-sm text-muted-foreground mb-3">Create an account as a patient or doctor. Doctor accounts require admin approval.</Text>
                   <View className="mt-2">
-                    <Button onPress={() => navigation.navigate('SignUp')} className="w-full rounded-xl py-4">Create account</Button>
+                    <Button size="lg" variant="default" onPress={() => navigation.navigate('SignUp')} className="w-full rounded-xl">Create account</Button>
                   </View>
                 </>
               )}
