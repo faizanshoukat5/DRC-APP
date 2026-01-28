@@ -150,7 +150,7 @@ export default function SettingsScreen() {
                 <View className="h-12 w-12 items-center justify-center rounded-full bg-primary">
                   <Ionicons name="eye" size={24} color="white" />
                 </View>
-                <Text className="mt-2 font-medium text-foreground">RetinaAI</Text>
+                <Text className="mt-2 font-medium text-foreground">Diabetic Retinopathy Detection and Stage Classification (RetinaAI)</Text>
                 <Text className="text-sm text-muted-foreground">Version 1.0.0</Text>
                 <Text className="mt-2 text-center text-xs text-muted-foreground">
                   Advanced Diabetic Retinopathy Screening powered by AI

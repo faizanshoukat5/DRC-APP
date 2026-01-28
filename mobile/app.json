@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "RetinaAI",
+    "name": "Diabetic Retinopathy Detection and Stage Classification (RetinaAI)",
     "slug": "retinaai",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -37,7 +37,7 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "Allow RetinaAI to access your photos for uploading fundus images."
+          "photosPermission": "Allow Diabetic Retinopathy Detection and Stage Classification (RetinaAI) to access your photos for uploading fundus images."
         }
       ],
       "expo-secure-store"

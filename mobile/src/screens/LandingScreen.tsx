@@ -29,11 +29,18 @@ export default function LandingScreen() {
           <ScrollView contentContainerClassName="pb-2" keyboardShouldPersistTaps="handled">
         {/* Top bar */}
         <View className="flex-row items-center justify-between px-6 pt-6">
-          <View className="flex-row items-center">
+          <View className="flex-row items-center flex-1 pr-3">
             <View className="h-12 w-12 items-center justify-center rounded-full bg-primary">
-              <Ionicons accessibilityLabel="RetinaAI logo" name="eye" size={22} color="white" />
+              <Ionicons accessibilityLabel="Diabetic Retinopathy Detection and Stage Classification (RetinaAI) logo" name="eye" size={22} color="white" />
             </View>
-            <Text className="ml-3 text-lg font-bold text-foreground">RetinaAI</Text>
+            <View className="ml-3 flex-1">
+              <Text className="text-base font-semibold text-foreground" numberOfLines={2}>
+                Diabetic Retinopathy Detection and Stage Classification
+              </Text>
+              <Text className="text-sm font-medium text-primary" numberOfLines={1}>
+                (RetinaAI)
+              </Text>
+            </View>
           </View>
           <View />
         </View>
@@ -42,7 +49,9 @@ export default function LandingScreen() {
         <View className="px-6 mt-6">
           <Card className="rounded-2xl p-4">
             <CardHeader>
-              <Text className="text-sm text-muted-foreground">RetinaAI</Text>
+              <Text className="text-sm text-muted-foreground" numberOfLines={2}>
+                Diabetic Retinopathy Detection and Stage Classification (RetinaAI)
+              </Text>
               <CardTitle>Diabetic Retinopathy, detected in seconds.</CardTitle>
             </CardHeader>
             <CardContent>

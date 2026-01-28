@@ -21,9 +21,9 @@ const faqCategories = [
     colorClass: 'bg-primary/10',
     questions: [
       {
-        q: 'What is RetinaAI?',
+        q: 'What is Diabetic Retinopathy Detection and Stage Classification (RetinaAI)?',
         a:
-          'RetinaAI is an AI-powered diabetic retinopathy detection platform. It analyzes fundus (eye) images to detect signs of diabetic retinopathy, providing severity grades, confidence scores, and explainable heatmaps to help doctors and patients understand the results.',
+          'Diabetic Retinopathy Detection and Stage Classification (RetinaAI) is an AI-powered diabetic retinopathy detection platform. It analyzes fundus (eye) images to detect signs of diabetic retinopathy, providing severity grades, confidence scores, and explainable heatmaps to help doctors and patients understand the results.',
       },
       {
         q: 'What is diabetic retinopathy?',
@@ -165,7 +165,7 @@ export default function FAQScreen() {
           </TouchableOpacity>
           <View className="flex-1">
             <Text className="text-xl font-bold text-foreground">Frequently Asked Questions</Text>
-            <Text className="text-sm text-muted-foreground">Find answers to common questions about RetinaAI</Text>
+            <Text className="text-sm text-muted-foreground">Find answers to common questions about Diabetic Retinopathy Detection and Stage Classification (RetinaAI)</Text>
           </View>
         </View>
 
