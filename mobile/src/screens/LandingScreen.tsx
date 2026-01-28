@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, SafeAreaView, TouchableOpacity, KeyboardAvoidingView, Platform, TouchableWithoutFeedback, Keyboard } from 'react-native';
+import { View, Text, ScrollView, SafeAreaView, TouchableOpacity, KeyboardAvoidingView, Platform, TouchableWithoutFeedback, Keyboard, StatusBar as RNStatusBar } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Button } from '../components/ui/Button';
@@ -18,10 +18,13 @@ export default function LandingScreen() {
   const [activeTab, setActiveTab] = useState<'signin' | 'signup'>('signin');
   const { lastError, signInWithPassword, isLoading } = useAuthContext();
   const [localError, setLocalError] = useState<string | null>(null);
+  // Device-aware keyboard offset: iOS needs a larger offset for the header + notch,
+  // Android can use the StatusBar height plus a small buffer.
+  const keyboardVerticalOffset = Platform.OS === 'ios' ? 90 : (RNStatusBar.currentHeight ?? 0) + 20;
 
   return (
     <SafeAreaView className="flex-1 bg-background">
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }} keyboardVerticalOffset={Platform.OS === 'ios' ? 60 : 0}>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }} keyboardVerticalOffset={keyboardVerticalOffset}>
         <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
           <ScrollView contentContainerClassName="pb-36" keyboardShouldPersistTaps="handled">
         {/* Top bar */}
