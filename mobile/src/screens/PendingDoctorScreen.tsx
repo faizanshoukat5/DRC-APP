@@ -9,7 +9,7 @@ export default function PendingDoctorScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-background">
-      <View className="flex-1 items-center justify-center px-6">
+      <View className="flex-1 items-center justify-center px-4">
         <Card className="w-full max-w-sm">
           <CardHeader className="items-center">
             <View className="mb-4 h-20 w-20 items-center justify-center rounded-full bg-orange-100">

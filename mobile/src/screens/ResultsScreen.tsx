@@ -57,7 +57,7 @@ export default function ResultsScreen() {
   if (error || !scan) {
     return (
       <SafeAreaView className="flex-1 bg-background">
-        <View className="flex-1 items-center justify-center px-6">
+        <View className="flex-1 items-center justify-center px-4">
           <Ionicons name="alert-circle" size={48} color="#ef4444" />
           <Text className="mt-4 text-center text-lg font-medium text-foreground">
             Failed to Load Results
@@ -82,7 +82,7 @@ export default function ResultsScreen() {
     <SafeAreaView className="flex-1 bg-background">
       <ScrollView className="flex-1">
         {/* Header */}
-        <View className="flex-row items-center px-6 pt-4">
+        <View className="flex-row items-center px-4 pt-4">
           <TouchableOpacity onPress={() => navigation.goBack()} className="mr-4">
             <Ionicons name="arrow-back" size={24} color="#6b7280" />
           </TouchableOpacity>
@@ -95,7 +95,7 @@ export default function ResultsScreen() {
         </View>
 
         {/* Image */}
-        <View className="mt-6 px-6">
+        <View className="mt-6 px-4">
           {scan.imageUrl ? (
             <Image
               source={{ uri: scan.imageUrl }}
@@ -111,7 +111,7 @@ export default function ResultsScreen() {
         </View>
 
         {/* Diagnosis Card */}
-        <View className="mt-6 px-6">
+        <View className="mt-6 px-4">
           <Card className="border-2 border-primary/20 bg-primary/5">
             <CardHeader>
               <View className="flex-row items-center justify-between">
@@ -147,7 +147,7 @@ export default function ResultsScreen() {
         </View>
 
         {/* Details */}
-        <View className="mt-6 px-6">
+        <View className="mt-6 px-4">
           <Card>
             <CardHeader>
               <CardTitle>Analysis Details</CardTitle>
@@ -166,7 +166,7 @@ export default function ResultsScreen() {
 
         {/* Doctor Notes */}
         {scan.doctorNotes && (
-          <View className="mt-6 px-6">
+          <View className="mt-6 px-4">
             <Card className="border-green-200 bg-green-50">
               <CardHeader>
                 <View className="flex-row items-center">
@@ -182,7 +182,7 @@ export default function ResultsScreen() {
         )}
 
         {/* Recommendations */}
-        <View className="mt-6 px-6">
+        <View className="mt-6 px-4">
           <Card>
             <CardHeader>
               <CardTitle>Recommendations</CardTitle>
@@ -226,7 +226,7 @@ export default function ResultsScreen() {
         </View>
 
         {/* Disclaimer */}
-        <View className="mt-6 mb-8 px-6">
+        <View className="mt-6 mb-8 px-4">
           <View className="rounded-lg bg-yellow-50 p-4">
             <View className="flex-row items-start">
               <Ionicons name="warning" size={20} color="#eab308" />

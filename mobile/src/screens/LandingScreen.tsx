@@ -28,7 +28,7 @@ export default function LandingScreen() {
         <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
           <ScrollView contentContainerClassName="pb-2" keyboardShouldPersistTaps="handled">
         {/* Top bar */}
-        <View className="flex-row items-center justify-between px-6 pt-6">
+        <View className="flex-row items-center justify-between px-4 pt-4">
           <View className="flex-row items-center flex-1 pr-3">
             <View className="h-12 w-12 items-center justify-center rounded-full bg-primary">
               <Ionicons accessibilityLabel="Diabetic Retinopathy Detection and Stage Classification (RetinaAI) logo" name="eye" size={22} color="white" />
@@ -46,7 +46,7 @@ export default function LandingScreen() {
         </View>
 
         {/* Hero */}
-        <View className="px-6 mt-6">
+        <View className="px-4 mt-4">
           <Card className="rounded-2xl p-4">
             <CardHeader>
               <Text className="text-sm text-muted-foreground" numberOfLines={2}>
@@ -67,14 +67,14 @@ export default function LandingScreen() {
         </View>
 
         {/* Highlights */}
-        <View className="px-6 mt-4 space-y-3">
+        <View className="px-4 mt-4 space-y-3">
           <SmallInfo icon="flash" title="Upload → AI" description="You upload fundus images; our ML model returns DR severity, confidence, and heatmaps." />
           <SmallInfo icon="people" title="Clinician-first" description="Explainable outputs doctors can trust, with clear severity and confidence." />
           <SmallInfo icon="cloud" title="Always synced" description="Secure storage for images and reports, accessible by patients and assigned doctors." />
         </View>
 
         {/* Patient & Doctor cards */}
-        <View className="px-6 mt-6 space-y-3">
+        <View className="px-4 mt-4 space-y-3">
           <Card className="p-4">
             <CardHeader>
               <Text className="text-xs text-muted-foreground">FOR PATIENTS</Text>
@@ -104,8 +104,22 @@ export default function LandingScreen() {
           </Card>
         </View>
 
+        {/* FAQ Link */}
+        <View className="px-4 mt-4">
+          <TouchableOpacity
+            onPress={() => navigation.navigate('FAQ')}
+            className="flex-row items-center justify-between p-4 rounded-xl bg-muted/30"
+          >
+            <View className="flex-row items-center">
+              <Ionicons name="help-circle-outline" size={24} color="#0ea5e9" />
+              <Text className="ml-3 text-base font-medium text-foreground">Frequently Asked Questions</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color="#6b7280" />
+          </TouchableOpacity>
+        </View>
+
         {/* Sign-in panel */}
-        <View className="px-6 mt-6">
+        <View className="px-4 mt-4">
           <Card className="p-4">
             <CardHeader>
               <Text className="text-xs text-muted-foreground">ACCESS</Text>

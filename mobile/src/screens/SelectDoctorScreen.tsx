@@ -105,7 +105,7 @@ export default function SelectDoctorScreen() {
         }
       >
         {/* Header */}
-        <View className="flex-row items-center px-6 pt-4">
+        <View className="flex-row items-center px-4 pt-4">
           <TouchableOpacity onPress={() => navigation.goBack()} className="mr-4">
             <Ionicons name="arrow-back" size={24} color="#6b7280" />
           </TouchableOpacity>
@@ -119,7 +119,7 @@ export default function SelectDoctorScreen() {
 
         {/* Current Doctor */}
         {currentDoctor && (
-          <View className="mt-6 px-6">
+          <View className="mt-6 px-4">
             <Text className="mb-2 text-sm font-medium text-muted-foreground">
               Current Doctor
             </Text>
@@ -145,7 +145,7 @@ export default function SelectDoctorScreen() {
         )}
 
         {/* Available Doctors */}
-        <View className="mt-6 px-6">
+        <View className="mt-6 px-4">
           <Text className="mb-3 text-lg font-semibold text-foreground">
             Available Doctors
           </Text>

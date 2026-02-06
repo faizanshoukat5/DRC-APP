@@ -82,7 +82,7 @@ export default function HistoryScreen() {
         }
       >
         {/* Header */}
-        <View className="px-6 pt-6">
+        <View className="px-4 pt-4">
           <Text className="text-2xl font-bold text-foreground">Scan History</Text>
           <Text className="mt-1 text-muted-foreground">
             {scans.length} total {scans.length === 1 ? 'scan' : 'scans'}
@@ -90,7 +90,7 @@ export default function HistoryScreen() {
         </View>
 
         {/* Scans List */}
-        <View className="mt-6 px-6">
+        <View className="mt-6 px-4">
           {Object.keys(groupedScans).length > 0 ? (
             Object.entries(groupedScans).map(([monthYear, monthScans]) => (
               <View key={monthYear} className="mb-6">

@@ -116,7 +116,7 @@ export default function AdminDashboardScreen() {
         }
       >
         {/* Header */}
-        <View className="px-6 pt-6">
+        <View className="px-4 pt-4">
           <Text className="text-2xl font-bold text-foreground">Admin Dashboard</Text>
           <Text className="mt-1 text-muted-foreground">
             Manage doctors and system settings
@@ -124,7 +124,7 @@ export default function AdminDashboardScreen() {
         </View>
 
         {/* Stats */}
-        <View className="mt-6 flex-row px-6">
+        <View className="mt-6 flex-row px-4">
           <Card className="mr-2 flex-1">
             <CardContent className="items-center py-4">
               <Ionicons name="shield-checkmark" size={32} color="#0ea5e9" />
@@ -143,7 +143,7 @@ export default function AdminDashboardScreen() {
         </View>
 
         {/* Pending Doctors */}
-        <View className="mt-6 px-6">
+        <View className="mt-6 px-4">
           <Text className="mb-3 text-lg font-semibold text-foreground">
             Pending Doctor Approvals
           </Text>

@@ -84,7 +84,7 @@ export default function SignUpScreen() {
         className="flex-1"
       >
         <ScrollView
-          className="flex-1 px-6 py-4"
+          className="flex-1 px-4 py-4"
           keyboardShouldPersistTaps="handled"
         >
           {/* Back Button */}
@@ -95,13 +95,23 @@ export default function SignUpScreen() {
             <Ionicons name="arrow-back" size={24} color="#6b7280" />
           </TouchableOpacity>
 
-          {/* Logo */}
-          <View className="mb-6 items-center">
-            <View className="mb-3 h-14 w-14 items-center justify-center rounded-full bg-primary">
-              <Ionicons name="eye" size={28} color="white" />
+          {/* Header */}
+          <View className="mb-4 px-2">
+            <View className="flex-row items-start justify-between">
+              <View>
+                <Text className="text-xs font-semibold text-muted-foreground">ACCESS</Text>
+                <Text className="text-2xl font-bold text-foreground">Create account</Text>
+              </View>
+
+              <View className="flex-row items-center space-x-2">
+                <TouchableOpacity onPress={() => navigation.navigate('SignIn')} className="rounded-full px-3 py-1 border border-border">
+                  <Text className="text-sm text-muted-foreground">Sign in</Text>
+                </TouchableOpacity>
+                <TouchableOpacity className="rounded-full px-3 py-1 border border-primary bg-primary/10">
+                  <Text className="text-sm font-medium text-primary">Sign up</Text>
+                </TouchableOpacity>
+              </View>
             </View>
-            <Text className="text-xl font-bold text-foreground">Create Account</Text>
-            <Text className="mt-1 text-sm text-muted-foreground">Join RetinaAI today</Text>
           </View>
 
           {/* Role Selection */}
@@ -151,7 +161,7 @@ export default function SignUpScreen() {
           </View>
 
           {/* Form */}
-          <Card>
+          <Card className="rounded-2xl">
             <CardHeader>
               <CardTitle>Your Information</CardTitle>
               <CardDescription>
@@ -248,11 +258,13 @@ export default function SignUpScreen() {
               />
 
               <Button
+                size="lg"
+                variant="default"
                 onPress={handleSignUp}
                 isLoading={isLoading}
-                className="w-full"
+                className="w-full rounded-xl"
               >
-                {role === 'doctor' ? 'Submit for Approval' : 'Create Account'}
+                {role === 'doctor' ? 'Submit for approval' : 'Create account'}
               </Button>
             </CardContent>
           </Card>

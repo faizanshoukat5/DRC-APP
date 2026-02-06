@@ -84,7 +84,7 @@ export default function AnalysisScreen() {
   return (
     <SafeAreaView className="flex-1 bg-background">
       {/* Header */}
-      <View className="flex-row items-center px-6 pt-4">
+      <View className="flex-row items-center px-4 pt-4">
         <TouchableOpacity onPress={() => navigation.goBack()} className="mr-4">
           <Ionicons name="arrow-back" size={24} color="#6b7280" />
         </TouchableOpacity>
@@ -96,7 +96,7 @@ export default function AnalysisScreen() {
         </View>
       </View>
 
-      <View className="flex-1 justify-center px-6">
+      <View className="flex-1 justify-center px-4">
         {selectedImage ? (
           <View>
             {/* Preview */}

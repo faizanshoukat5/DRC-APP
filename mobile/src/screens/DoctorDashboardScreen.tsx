@@ -129,7 +129,7 @@ export default function DoctorDashboardScreen() {
         }
       >
         {/* Header */}
-        <View className="px-6 pt-6">
+        <View className="px-4 pt-4">
           <Text className="text-2xl font-bold text-foreground">Welcome, Doctor</Text>
           <Text className="mt-1 text-muted-foreground">
             Upload fundus images and review patient reports.
@@ -137,7 +137,7 @@ export default function DoctorDashboardScreen() {
         </View>
 
         {/* Stats Cards */}
-        <View className="mt-6 flex-row px-6">
+        <View className="mt-6 flex-row px-4">
           <Card className="mr-3 flex-1 bg-blue-50">
             <CardContent className="flex-row items-center py-4">
               <View className="mr-3 h-10 w-10 items-center justify-center rounded-full bg-blue-100">
@@ -163,7 +163,7 @@ export default function DoctorDashboardScreen() {
         </View>
 
         {/* New Analysis Card */}
-        <View className="mt-6 px-6">
+        <View className="mt-6 px-4">
           <Card>
             <CardContent className="py-4">
               {/* Card Header */}
@@ -267,7 +267,7 @@ export default function DoctorDashboardScreen() {
         </View>
 
         {/* Recent Reports */}
-        <View className="mt-6 px-6">
+        <View className="mt-6 px-4">
           <View className="mb-3 flex-row items-center justify-between">
             <Text className="text-lg font-semibold text-foreground">Recent Reports</Text>
             <Text className="text-sm text-muted-foreground">{totalScans} total</Text>

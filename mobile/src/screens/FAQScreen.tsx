@@ -159,7 +159,7 @@ export default function FAQScreen() {
     <SafeAreaView className="flex-1 bg-background">
       <ScrollView className="flex-1">
         {/* Header */}
-        <View className="flex-row items-center px-6 pt-4">
+        <View className="flex-row items-center px-4 pt-4">
           <TouchableOpacity onPress={() => navigation.goBack()} className="mr-4">
             <Ionicons name="arrow-back" size={24} color="#6b7280" />
           </TouchableOpacity>
@@ -170,7 +170,7 @@ export default function FAQScreen() {
         </View>
 
         {/* Categories */}
-        <View className="space-y-4 mt-6 px-6">
+        <View className="space-y-4 mt-6 px-4">
           {faqCategories.map((cat) => (
             <Card key={cat.title} className="p-4 border-slate-200/70 shadow-sm">
               <View className="flex-row items-center gap-3 mb-4">
@@ -202,7 +202,7 @@ export default function FAQScreen() {
         </View>
 
         {/* Contact Support */}
-        <View className="mt-6 px-6 mb-8">
+        <View className="mt-6 px-4 mb-8">
           <Card className="p-5 border-slate-200/70 shadow-sm bg-gradient-to-br from-primary/5 to-primary/10">
             <View className="flex-row items-start gap-3">
               <View className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center">

@@ -40,7 +40,7 @@ export default function SettingsScreen() {
     <SafeAreaView className="flex-1 bg-background">
       <ScrollView className="flex-1">
         {/* Header */}
-        <View className="px-6 pt-6">
+        <View className="px-4 pt-4">
           <Text className="text-2xl font-bold text-foreground">Settings</Text>
           <Text className="mt-1 text-muted-foreground">
             Manage your account and preferences
@@ -48,7 +48,7 @@ export default function SettingsScreen() {
         </View>
 
         {/* Profile Card */}
-        <View className="mt-6 px-6">
+        <View className="mt-6 px-4">
           <Card>
             <CardHeader>
               <CardTitle>Profile</CardTitle>
@@ -77,7 +77,7 @@ export default function SettingsScreen() {
         </View>
 
         {/* Account Details */}
-        <View className="mt-6 px-6">
+        <View className="mt-6 px-4">
           <Card>
             <CardHeader>
               <CardTitle>Account Details</CardTitle>
@@ -107,7 +107,7 @@ export default function SettingsScreen() {
         </View>
 
         {/* Quick Links */}
-        <View className="mt-6 px-6">
+        <View className="mt-6 px-4">
           <Card>
             <CardHeader>
               <CardTitle>Quick Links</CardTitle>
@@ -140,7 +140,7 @@ export default function SettingsScreen() {
         </View>
 
         {/* App Info */}
-        <View className="mt-6 px-6">
+        <View className="mt-6 px-4">
           <Card>
             <CardHeader>
               <CardTitle>About</CardTitle>
@@ -161,7 +161,7 @@ export default function SettingsScreen() {
         </View>
 
         {/* Sign Out */}
-        <View className="mt-6 mb-8 px-6">
+        <View className="mt-6 mb-8 px-4">
           <Button
             variant="destructive"
             onPress={handleSignOut}

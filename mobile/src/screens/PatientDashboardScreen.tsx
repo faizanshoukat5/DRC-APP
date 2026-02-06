@@ -92,7 +92,7 @@ export default function PatientDashboardScreen() {
         }
       >
         {/* Header */}
-        <View className="px-6 pt-6">
+        <View className="px-4 pt-4">
           <Text className="text-2xl font-bold text-foreground">Patient Dashboard</Text>
           <Text className="mt-1 text-muted-foreground">Track your diabetic retinopathy screening results</Text>
         </View>
@@ -100,7 +100,7 @@ export default function PatientDashboardScreen() {
         {/* Patients cannot upload images; analysis is performed by doctors only. */}
 
         {/* Doctor Card */}
-        <View className="mt-6 px-6">
+        <View className="mt-6 px-4">
           {doctor ? (
             <Card className="p-4 bg-gradient-to-r from-primary/10 to-blue-50 border-0">
               <View className="flex-row items-center justify-between">
@@ -131,7 +131,7 @@ export default function PatientDashboardScreen() {
         </View>
 
         {/* Stats */}
-        <View className="mt-6 px-6 grid grid-cols-2 gap-3 flex-row">
+        <View className="mt-6 px-4 grid grid-cols-2 gap-3 flex-row">
           <Card className="mr-3 flex-1 bg-gradient-to-br from-slate-50 to-slate-100 border-0">
             <CardContent className="flex-row items-center py-4">
               <View className="mr-3 h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center">
@@ -196,7 +196,7 @@ export default function PatientDashboardScreen() {
         )}
 
         {/* Report History */}
-        <View className="mt-6 px-6">
+        <View className="mt-6 px-4">
           <View className="mb-3 flex-row items-center justify-between">
             <Text className="text-lg font-semibold text-foreground">Report History</Text>
             <Badge variant="secondary">{totalScans} reports</Badge>
@@ -238,7 +238,7 @@ export default function PatientDashboardScreen() {
         </View>
 
         {/* Quick Actions */}
-        <View className="mt-6 mb-8 px-6">
+        <View className="mt-6 mb-8 px-4">
           <Text className="mb-3 text-lg font-semibold text-foreground">Quick Actions</Text>
           <View className="flex-row flex-wrap">
             <QuickActionButton icon="help-circle-outline" label="FAQ" onPress={() => navigation.navigate('FAQ')} />

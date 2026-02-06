@@ -52,7 +52,7 @@ export default function SignInScreen() {
       >
         <ScrollView
           className="flex-1"
-          contentContainerClassName="flex-grow justify-center px-6 py-8"
+          contentContainerclassName="flex-grow justify-center px-4 py-8"
           keyboardShouldPersistTaps="handled"
         >
           {/* Back Button */}
@@ -63,17 +63,27 @@ export default function SignInScreen() {
             <Ionicons name="arrow-back" size={24} color="#6b7280" />
           </TouchableOpacity>
 
-          {/* Logo */}
-          <View className="mb-8 items-center">
-            <View className="mb-4 h-16 w-16 items-center justify-center rounded-full bg-primary">
-              <Ionicons name="eye" size={32} color="white" />
+          {/* Header */}
+          <View className="mb-4 px-2">
+            <View className="flex-row items-start justify-between">
+              <View>
+                <Text className="text-xs font-semibold text-muted-foreground">ACCESS</Text>
+                <Text className="text-2xl font-bold text-foreground">Sign in</Text>
+              </View>
+
+              <View className="flex-row items-center space-x-2">
+                <TouchableOpacity className="rounded-full px-3 py-1 border border-primary bg-primary/10">
+                  <Text className="text-sm font-medium text-primary">Sign in</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => navigation.navigate('SignUp')} className="rounded-full px-3 py-1 border border-border">
+                  <Text className="text-sm text-muted-foreground">Sign up</Text>
+                </TouchableOpacity>
+              </View>
             </View>
-            <Text className="text-2xl font-bold text-foreground">Welcome Back</Text>
-            <Text className="mt-1 text-muted-foreground">Sign in to your account</Text>
           </View>
 
           {/* Form */}
-          <Card>
+          <Card className="rounded-2xl">
             <CardHeader>
               <CardTitle>Sign In</CardTitle>
               <CardDescription>Enter your credentials to continue</CardDescription>
@@ -118,11 +128,13 @@ export default function SignInScreen() {
               </View>
 
               <Button
+                size="lg"
+                variant="default"
                 onPress={handleSignIn}
                 isLoading={isLoading}
-                className="w-full"
+                className="w-full rounded-xl"
               >
-                Sign In
+                Sign in
               </Button>
             </CardContent>
           </Card>
