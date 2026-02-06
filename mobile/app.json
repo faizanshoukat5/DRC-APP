@@ -14,7 +14,8 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.retinaai.app"
+      "bundleIdentifier": "com.retinaai.app",
+      "buildNumber": "1"
     },
     "android": {
       "adaptiveIcon": {
@@ -22,10 +23,12 @@
         "backgroundColor": "#ffffff"
       },
       "package": "com.retinaai.app",
+      "versionCode": 1,
       "permissions": [
-        "CAMERA",
-        "READ_EXTERNAL_STORAGE",
-        "WRITE_EXTERNAL_STORAGE"
+        "android.permission.CAMERA",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.RECORD_AUDIO"
       ],
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false
@@ -41,6 +44,11 @@
         }
       ],
       "expo-secure-store"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "b565b17c-ad70-4067-ae12-6e4bd1cbfca1"
+      }
+    }
   }
 }
