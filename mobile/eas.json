@@ -10,7 +10,7 @@
       "distribution": "store",
       "env": {
         "EXPO_PUBLIC_SUPABASE_URL": "https://ideewfgconyevfevhtgr.supabase.co",
-        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlkZWV3Zmdjb255ZXZmZXZodGdyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzQwODU0MTksImV4cCI6MjA0OTY2MTQxOX0.NZbjEGUfIZEGz0VT2qP7UpBw0OvqT3guwWn0hj5yLPM"
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlkZWV3Zmdjb255ZXZmZXZodGdyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU2MTg3OTgsImV4cCI6MjA4MTE5NDc5OH0.CgW3OSAjzTwh_FTXeHqrMA0YfCVxpPQdizF1a3O66Z8"
       }
     },
     "apk": {
@@ -20,7 +20,7 @@
       "distribution": "internal",
       "env": {
         "EXPO_PUBLIC_SUPABASE_URL": "https://ideewfgconyevfevhtgr.supabase.co",
-        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlkZWV3Zmdjb255ZXZmZXZodGdyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzQwODU0MTksImV4cCI6MjA0OTY2MTQxOX0.NZbjEGUfIZEGz0VT2qP7UpBw0OvqT3guwWn0hj5yLPM"
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlkZWV3Zmdjb255ZXZmZXZodGdyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU2MTg3OTgsImV4cCI6MjA4MTE5NDc5OH0.CgW3OSAjzTwh_FTXeHqrMA0YfCVxpPQdizF1a3O66Z8"
       }
     }
   }
