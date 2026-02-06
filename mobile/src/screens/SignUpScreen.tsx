@@ -2,12 +2,11 @@ import React, { useState } from 'react';
 import {
   View,
   Text,
-  ScrollView,
   SafeAreaView,
-  KeyboardAvoidingView,
   Platform,
   TouchableOpacity,
 } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useAuthContext } from '../contexts/AuthContext';
@@ -79,14 +78,14 @@ export default function SignUpScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-background">
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        className="flex-1"
+      <KeyboardAwareScrollView
+        enableOnAndroid
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
+        extraScrollHeight={Platform.OS === 'ios' ? 24 : 120}
+        contentContainerStyle={{ paddingBottom: 40 }}
+        style={{ flex: 1, paddingHorizontal: 16, paddingVertical: 16 }}
       >
-        <ScrollView
-          className="flex-1 px-4 py-4"
-          keyboardShouldPersistTaps="handled"
-        >
           {/* Back Button */}
           <TouchableOpacity
             onPress={() => navigation.goBack()}
@@ -276,8 +275,7 @@ export default function SignUpScreen() {
               <Text className="font-medium text-primary">Sign In</Text>
             </TouchableOpacity>
           </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
+      </KeyboardAwareScrollView>
     </SafeAreaView>
   );
 }

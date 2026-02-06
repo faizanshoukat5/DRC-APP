@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { View, Text, ScrollView, SafeAreaView, TouchableOpacity, KeyboardAvoidingView, Platform, TouchableWithoutFeedback, Keyboard, StatusBar as RNStatusBar } from 'react-native';
+import React, { useRef, useState } from 'react';
+import { View, Text, ScrollView, SafeAreaView, TouchableOpacity, KeyboardAvoidingView, Platform, TouchableWithoutFeedback, Keyboard, StatusBar as RNStatusBar, StyleSheet } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Button } from '../components/ui/Button';
@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card'
 import { Ionicons } from '@expo/vector-icons';
 import { Input } from '../components/ui/Input';
 import type { RootStackParamList } from '../navigation/AppNavigator';
+import { Video, ResizeMode, type AVPlaybackStatus } from 'expo-av';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Landing'>;
 
@@ -18,20 +19,45 @@ export default function LandingScreen() {
   const [activeTab, setActiveTab] = useState<'signin' | 'signup'>('signin');
   const { lastError, signInWithPassword, isLoading } = useAuthContext();
   const [localError, setLocalError] = useState<string | null>(null);
+  const [showIntro, setShowIntro] = useState(true);
+  const videoRef = useRef<Video>(null);
   // Device-aware keyboard offset: iOS needs a larger offset for the header + notch,
   // Android can use the StatusBar height plus a small buffer.
   const keyboardVerticalOffset = Platform.OS === 'ios' ? 90 : (RNStatusBar.currentHeight ?? 0) + 20;
 
   return (
     <SafeAreaView className="flex-1 bg-background">
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }} keyboardVerticalOffset={keyboardVerticalOffset}>
+      {showIntro && (
+        <View style={styles.introOverlay}>
+          <Video
+            ref={videoRef}
+            source={require('../../assets/eye-opening.mp4')}
+            style={styles.introVideo}
+            resizeMode={ResizeMode.CONTAIN}
+            shouldPlay
+            isLooping={false}
+            onPlaybackStatusUpdate={(status: AVPlaybackStatus) => {
+              if (!status.isLoaded) return;
+              if (status.didJustFinish) setShowIntro(false);
+            }}
+          />
+          <TouchableOpacity onPress={() => setShowIntro(false)} style={styles.skipButton}>
+            <Text style={styles.skipText}>Skip</Text>
+          </TouchableOpacity>
+          <View style={styles.introCaption}>
+            <Text style={styles.introTitle}>RetinaAI</Text>
+            <Text style={styles.introSubtitle}>Diabetic Retinopathy Detection</Text>
+          </View>
+        </View>
+      )}
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }} keyboardVerticalOffset={keyboardVerticalOffset}>
         <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
           <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ flexGrow: 1, paddingBottom: 8 }}>
         {/* Top bar */}
         <View className="flex-row items-center justify-between px-4 pt-4">
           <View className="flex-row items-center flex-1 pr-3">
-            <View className="h-12 w-12 items-center justify-center rounded-full bg-primary">
-              <Ionicons accessibilityLabel="Diabetic Retinopathy Detection and Stage Classification (RetinaAI) logo" name="eye" size={22} color="white" />
+            <View className="items-center justify-center">
+              <EyeLogo size={48} />
             </View>
             <View className="ml-3 flex-1">
               <Text className="text-base font-semibold text-foreground" numberOfLines={2}>
@@ -199,6 +225,52 @@ export default function LandingScreen() {
   );
 }
 
+function EyeLogo({ size = 48 }: { size?: number }) {
+  const outerWidth = size;
+  const outerHeight = Math.round(size * 0.6);
+  const pupilSize = Math.round(size * 0.36);
+
+  return (
+    <View style={{ width: outerWidth, alignItems: 'center' }}>
+      <View
+        style={{
+          width: outerWidth,
+          height: outerHeight,
+          borderRadius: outerHeight / 2,
+          backgroundColor: '#ffffff',
+          alignItems: 'center',
+          justifyContent: 'center',
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 6 },
+          shadowOpacity: 0.12,
+          shadowRadius: 12,
+          elevation: 6,
+        }}
+      >
+        <View
+          style={{
+            width: pupilSize,
+            height: pupilSize,
+            borderRadius: pupilSize / 2,
+            backgroundColor: '#0ea5e9',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <View
+            style={{
+              width: Math.round(pupilSize * 0.46),
+              height: Math.round(pupilSize * 0.46),
+              borderRadius: Math.round(pupilSize * 0.46) / 2,
+              backgroundColor: '#01263a',
+            }}
+          />
+        </View>
+      </View>
+    </View>
+  );
+}
+
 function Badge({ label }: { label: string }) {
   return (
     <View className="rounded-full bg-muted/30 px-3 py-2">
@@ -222,3 +294,45 @@ function SmallInfo({ icon, title, description }: { icon: string; title: string; 
     </Card>
   );
 }
+
+const styles = StyleSheet.create({
+  introOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 10,
+    backgroundColor: '#05070c',
+  },
+  introVideo: {
+    width: '100%',
+    height: '100%',
+  },
+  skipButton: {
+    position: 'absolute',
+    top: Platform.OS === 'ios' ? 60 : 30,
+    right: 20,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 999,
+    backgroundColor: 'rgba(15, 23, 42, 0.7)',
+  },
+  skipText: {
+    color: '#ffffff',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  introCaption: {
+    position: 'absolute',
+    bottom: 64,
+    left: 24,
+    right: 24,
+  },
+  introTitle: {
+    color: '#ffffff',
+    fontSize: 28,
+    fontWeight: '700',
+  },
+  introSubtitle: {
+    color: '#e2e8f0',
+    fontSize: 14,
+    marginTop: 6,
+  },
+});

@@ -195,9 +195,10 @@ export default function AppNavigator() {
             )}
             <Stack.Screen name="SelectDoctor" component={SelectDoctorScreen} />
             <Stack.Screen name="Settings" component={SettingsScreen} />
-            <Stack.Screen name="FAQ" component={FAQScreen} />
           </>
         )}
+        {/* Register FAQ after the auth branches so it is pushed onto the stack (back works) */}
+        <Stack.Screen name="FAQ" component={FAQScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

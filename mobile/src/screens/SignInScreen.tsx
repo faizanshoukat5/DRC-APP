@@ -7,6 +7,9 @@ import {
   KeyboardAvoidingView,
   Platform,
   TouchableOpacity,
+  Keyboard,
+  TouchableWithoutFeedback,
+  StatusBar as RNStatusBar,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -27,6 +30,7 @@ export default function SignInScreen() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
+  const keyboardVerticalOffset = Platform.OS === 'ios' ? 90 : (RNStatusBar.currentHeight ?? 0) + 20;
 
   const handleSignIn = async () => {
     if (!email.trim() || !password.trim()) {
@@ -47,14 +51,17 @@ export default function SignInScreen() {
   return (
     <SafeAreaView className="flex-1 bg-background">
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={keyboardVerticalOffset}
         style={{ flex: 1 }}
       >
-        <ScrollView
-          style={{ flex: 1 }}
-          contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', paddingHorizontal: 16, paddingVertical: 32 }}
-          keyboardShouldPersistTaps="handled"
-        >
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+          <ScrollView
+            style={{ flex: 1 }}
+            contentContainerStyle={{ flexGrow: 1, paddingHorizontal: 16, paddingVertical: 32 }}
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="on-drag"
+          >
           {/* Back Button */}
           <TouchableOpacity
             onPress={() => navigation.goBack()}
@@ -146,7 +153,8 @@ export default function SignInScreen() {
               <Text className="font-medium text-primary">Sign Up</Text>
             </TouchableOpacity>
           </View>
-        </ScrollView>
+          </ScrollView>
+        </TouchableWithoutFeedback>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );

@@ -14,8 +14,11 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.retinaai.app",
-      "buildNumber": "1"
+      "bundleIdentifier": "com.faizan.retinaai",
+      "buildNumber": "1",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -40,10 +43,12 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "Allow Diabetic Retinopathy Detection and Stage Classification (RetinaAI) to access your photos for uploading fundus images."
+          "photosPermission": "Allow Diabetic Retinopathy Detection and Stage Classification (RetinaAI) to access your photos for uploading fundus images.",
+          "cameraPermission": "Allow Diabetic Retinopathy Detection and Stage Classification (RetinaAI) to use the camera to capture fundus images."
         }
       ],
-      "expo-secure-store"
+      "expo-secure-store",
+      "expo-font"
     ],
     "extra": {
       "eas": {
