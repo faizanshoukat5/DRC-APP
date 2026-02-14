@@ -3,15 +3,16 @@ import {
   View,
   Text,
   ScrollView,
-  SafeAreaView,
   RefreshControl,
-  Image,
   Alert,
   ActivityIndicator,
   TouchableOpacity,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import AppHeader from '../components/ui/AppHeader';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { useAuthContext } from '../contexts/AuthContext';
 import { Card, CardContent, PressableCard } from '../components/ui/Card';
@@ -38,7 +39,7 @@ export default function DoctorDashboardScreen() {
 
   const loadData = useCallback(async () => {
     if (!user?.id) return;
-    
+
     try {
       const data = await getMyPatients(user.id);
       setPatients(data);
@@ -66,20 +67,22 @@ export default function DoctorDashboardScreen() {
   const totalScans = patients.reduce((acc, p) => acc + (p.scans?.length || 0), 0);
 
   // Get all recent scans from all patients
-  const allScans: (Scan & { patientName: string })[] = patients
-    .flatMap((p) => (p.scans || []).map((s) => ({ ...s, patientName: p.name })))
-    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  const allScans: (Scan & { patientName: string })[] = React.useMemo(() => {
+    return patients
+      .flatMap((p) => (p.scans || []).map((s) => ({ ...s, patientName: p.name })))
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }, [patients]);
 
   const handleSelectImage = async () => {
     const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    
+
     if (!permissionResult.granted) {
       Alert.alert('Permission Required', 'Please allow access to your photo library.');
       return;
     }
 
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ['images'],
       allowsEditing: true,
       quality: 0.8,
     });
@@ -129,12 +132,12 @@ export default function DoctorDashboardScreen() {
         }
       >
         {/* Header */}
-        <View className="px-4 pt-4">
-          <Text className="text-2xl font-bold text-foreground">Welcome, Doctor</Text>
-          <Text className="mt-1 text-muted-foreground">
-            Upload fundus images and review patient reports.
-          </Text>
-        </View>
+        <AppHeader
+          title="Welcome, Doctor"
+          subtitle="Upload fundus images and review patient reports."
+          roleTag="DOCTOR"
+          transition="scale"
+        />
 
         {/* Stats Cards */}
         <View className="mt-6 flex-row px-4">
@@ -184,7 +187,7 @@ export default function DoctorDashboardScreen() {
                 <Text className="mb-2 text-sm font-medium text-foreground">
                   Select Patient <Text className="text-red-500">*</Text>
                 </Text>
-                
+
                 {patients.length > 0 ? (
                   <View>
                     <TouchableOpacity
@@ -194,13 +197,13 @@ export default function DoctorDashboardScreen() {
                       <Text className={selectedPatient ? 'text-foreground' : 'text-muted-foreground'}>
                         {selectedPatient?.name || 'Select a patient...'}
                       </Text>
-                      <Ionicons 
-                        name={showPatientPicker ? 'chevron-up' : 'chevron-down'} 
-                        size={20} 
-                        color="#6b7280" 
+                      <Ionicons
+                        name={showPatientPicker ? 'chevron-up' : 'chevron-down'}
+                        size={20}
+                        color="#6b7280"
                       />
                     </TouchableOpacity>
-                    
+
                     {showPatientPicker && (
                       <View className="mt-2 rounded-lg border border-input bg-background">
                         {patients.map((patient) => (
@@ -210,9 +213,8 @@ export default function DoctorDashboardScreen() {
                               setSelectedPatient(patient);
                               setShowPatientPicker(false);
                             }}
-                            className={`border-b border-input px-4 py-3 ${
-                              selectedPatient?.id === patient.id ? 'bg-primary/10' : ''
-                            }`}
+                            className={`border-b border-input px-4 py-3 ${selectedPatient?.id === patient.id ? 'bg-primary/10' : ''
+                              }`}
                           >
                             <Text className="font-medium text-foreground">{patient.name}</Text>
                             <Text className="text-xs text-muted-foreground">{patient.email}</Text>
@@ -239,7 +241,7 @@ export default function DoctorDashboardScreen() {
                   <Image
                     source={{ uri: selectedImage }}
                     className="h-32 w-32 rounded-lg"
-                    resizeMode="cover"
+                    contentFit="cover"
                   />
                 ) : (
                   <>
@@ -285,7 +287,7 @@ export default function DoctorDashboardScreen() {
                     <Image
                       source={{ uri: scan.imageUrl }}
                       className="h-14 w-14 rounded-lg"
-                      resizeMode="cover"
+                      contentFit="cover"
                     />
                   ) : (
                     <View className="h-14 w-14 items-center justify-center rounded-lg bg-muted">
@@ -307,11 +309,11 @@ export default function DoctorDashboardScreen() {
                         {scan.severity}
                       </Badge>
                     )}
-                    <Ionicons 
-                      name="chevron-forward" 
-                      size={20} 
-                      color="#9ca3af" 
-                      style={{ marginTop: 8 }} 
+                    <Ionicons
+                      name="chevron-forward"
+                      size={20}
+                      color="#9ca3af"
+                      style={{ marginTop: 8 }}
                     />
                   </View>
                 </View>

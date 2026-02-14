@@ -3,12 +3,12 @@ import {
   View,
   Text,
   ScrollView,
-  SafeAreaView,
   RefreshControl,
   Alert,
   ActivityIndicator,
   TouchableOpacity,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useAuthContext } from '../contexts/AuthContext';
@@ -34,7 +34,7 @@ export default function SelectDoctorScreen() {
 
   const loadData = useCallback(async () => {
     if (!user?.id) return;
-    
+
     try {
       const [doctorsData, myDoctor] = await Promise.all([
         getApprovedDoctors(),
@@ -164,9 +164,8 @@ export default function SelectDoctorScreen() {
                 >
                   <View className="flex-row items-center">
                     <View
-                      className={`h-12 w-12 items-center justify-center rounded-full ${
-                        isSelected ? 'bg-primary/20' : 'bg-muted'
-                      }`}
+                      className={`h-12 w-12 items-center justify-center rounded-full ${isSelected ? 'bg-primary/20' : 'bg-muted'
+                        }`}
                     >
                       <Ionicons
                         name="medical"

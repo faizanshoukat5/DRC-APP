@@ -3,11 +3,11 @@ import {
   View,
   Text,
   ScrollView,
-  SafeAreaView,
   RefreshControl,
   Image,
   ActivityIndicator,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useAuthContext } from '../contexts/AuthContext';
@@ -31,7 +31,7 @@ export default function HistoryScreen() {
 
   const loadData = useCallback(async () => {
     if (!user?.id) return;
-    
+
     try {
       const data = await getScans(user.id);
       setScans(data);

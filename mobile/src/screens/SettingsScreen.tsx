@@ -3,10 +3,10 @@ import {
   View,
   Text,
   ScrollView,
-  SafeAreaView,
-  TouchableOpacity,
   Alert,
+  TouchableOpacity,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useAuthContext } from '../contexts/AuthContext';
@@ -96,8 +96,8 @@ export default function SettingsScreen() {
                       user?.status === 'approved'
                         ? 'text-green-600'
                         : user?.status === 'pending'
-                        ? 'text-orange-600'
-                        : 'text-red-600'
+                          ? 'text-orange-600'
+                          : 'text-red-600'
                     }
                   />
                 </>

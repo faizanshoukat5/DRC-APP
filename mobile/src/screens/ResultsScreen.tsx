@@ -3,11 +3,11 @@ import {
   View,
   Text,
   ScrollView,
-  SafeAreaView,
   Image,
   ActivityIndicator,
   TouchableOpacity,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/Card';
@@ -127,7 +127,7 @@ export default function ResultsScreen() {
               <Text className="text-2xl font-bold text-foreground">
                 {scan.diagnosis || 'Pending Analysis'}
               </Text>
-              
+
               {confidence !== null && (
                 <View className="mt-4">
                   <View className="flex-row items-center justify-between">

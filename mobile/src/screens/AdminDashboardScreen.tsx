@@ -3,11 +3,12 @@ import {
   View,
   Text,
   ScrollView,
-  SafeAreaView,
   RefreshControl,
   Alert,
   ActivityIndicator,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import AppHeader from '../components/ui/AppHeader';
 import { useFocusEffect } from '@react-navigation/native';
 import { useAuthContext } from '../contexts/AuthContext';
 import { Button } from '../components/ui/Button';
@@ -116,12 +117,12 @@ export default function AdminDashboardScreen() {
         }
       >
         {/* Header */}
-        <View className="px-4 pt-4">
-          <Text className="text-2xl font-bold text-foreground">Admin Dashboard</Text>
-          <Text className="mt-1 text-muted-foreground">
-            Manage doctors and system settings
-          </Text>
-        </View>
+        <AppHeader
+          title="Admin Dashboard"
+          subtitle="Manage doctors, approvals, and core system settings."
+          roleTag="ADMIN"
+          transition="slide"
+        />
 
         {/* Stats */}
         <View className="mt-6 flex-row px-4">
