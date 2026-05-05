@@ -1,5 +1,17 @@
 import { supabase } from './supabaseClient';
-import * as FileSystem from 'expo-file-system';
+// Use the legacy module since SDK 54 turned the old top-level methods
+// (getInfoAsync, readAsStringAsync) into thrown errors. Migration to the
+// new File/Directory API can come later — this keeps behavior identical.
+import * as FileSystem from 'expo-file-system/legacy';
+import {
+  diagnosisFromPrediction,
+  isMlBackendConfigured,
+  mapClassToSeverity,
+  predictFundus,
+} from './mlApi';
+
+export type InferenceMode = 'remote' | 'failed' | 'pending' | 'stub';
+export type UploadPhase = 'uploading' | 'analyzing';
 
 export interface Scan {
   id: string;
@@ -13,18 +25,14 @@ export interface Scan {
   analysisDetails?: string;
   doctorNotes?: string;
   modelVersion?: string;
+  probabilities?: Record<string, number>;
+  temperatureUsed?: number;
+  inferenceMode?: InferenceMode;
 }
 
-export async function getScans(patientId: string): Promise<Scan[]> {
-  const { data, error } = await supabase
-    .from('scans')
-    .select('*')
-    .eq('patient_id', patientId)
-    .order('timestamp', { ascending: false });
-  
-  if (error) throw new Error(error.message);
-  
-  return (data || []).map((record: any) => ({
+function scanFromRecord(record: any): Scan {
+  const metadata = record.metadata ?? {};
+  return {
     id: String(record.id),
     patientId: record.patient_id,
     createdAt: record.timestamp,
@@ -36,7 +44,22 @@ export async function getScans(patientId: string): Promise<Scan[]> {
     analysisDetails: record.analysis_details,
     doctorNotes: record.doctor_notes,
     modelVersion: record.model_version,
-  }));
+    probabilities: metadata.probabilities,
+    temperatureUsed: metadata.temperatureUsed ?? metadata.temperature_used,
+    inferenceMode: record.inference_mode,
+  };
+}
+
+export async function getScans(patientId: string): Promise<Scan[]> {
+  const { data, error } = await supabase
+    .from('scans')
+    .select('*')
+    .eq('patient_id', patientId)
+    .order('timestamp', { ascending: false });
+
+  if (error) throw new Error(error.message);
+
+  return (data || []).map(scanFromRecord);
 }
 
 export async function getScan(id: string): Promise<Scan | null> {
@@ -45,85 +68,122 @@ export async function getScan(id: string): Promise<Scan | null> {
     .select('*')
     .eq('id', id)
     .maybeSingle();
-  
+
   if (error) throw new Error(error.message);
   if (!data) return null;
-  
-  return {
-    id: String(data.id),
-    patientId: data.patient_id,
-    createdAt: data.timestamp,
-    imageUrl: data.original_image_url || data.image_url,
-    heatmapUrl: data.heatmap_image_url,
-    diagnosis: data.diagnosis,
-    severity: data.severity,
-    confidence: data.confidence,
-    analysisDetails: data.analysis_details,
-    doctorNotes: data.doctor_notes,
-    modelVersion: data.model_version,
-  };
+
+  return scanFromRecord(data);
 }
 
-export async function uploadScan(patientId: string, imageUri: string): Promise<Scan> {
-  // Read the image file
+export async function uploadScan(
+  patientId: string,
+  imageUri: string,
+  onPhase?: (phase: UploadPhase) => void,
+): Promise<Scan> {
+  onPhase?.('uploading');
+
   const fileInfo = await FileSystem.getInfoAsync(imageUri);
   if (!fileInfo.exists) throw new Error('Image file not found');
 
-  // Get the file extension
-  const ext = imageUri.split('.').pop() || 'jpg';
+  const ext = (imageUri.split('.').pop() || 'jpg').toLowerCase();
   const fileName = `${patientId}/${Date.now()}.${ext}`;
 
-  // Read the file as base64
   const base64 = await FileSystem.readAsStringAsync(imageUri, {
     encoding: 'base64' as const,
   });
+  const arrayBuffer = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
 
-  // Convert to blob
-  const arrayBuffer = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
-
-  // Upload to Supabase Storage
-  const { data: uploadData, error: uploadError } = await supabase.storage
+  const { error: uploadError } = await supabase.storage
     .from('scans')
     .upload(fileName, arrayBuffer, {
-      contentType: `image/${ext}`,
+      contentType: `image/${ext === 'png' ? 'png' : 'jpeg'}`,
       upsert: false,
     });
-
   if (uploadError) throw new Error(uploadError.message);
 
-  // Get public URL
   const { data: urlData } = supabase.storage.from('scans').getPublicUrl(fileName);
 
-  // Create scan record (AI analysis would happen on backend)
-  // For now, create a pending scan with all required fields
+  // If the ML backend isn't configured, preserve the legacy "pending" stub flow
+  // so the existing UI remains usable until the FastAPI backend is deployed.
+  if (!isMlBackendConfigured()) {
+    const { data: stub, error: stubError } = await supabase
+      .from('scans')
+      .insert({
+        patient_id: patientId,
+        original_image_url: urlData.publicUrl,
+        heatmap_image_url: urlData.publicUrl,
+        diagnosis: 'Pending Analysis',
+        severity: 'unknown',
+        confidence: 0,
+        model_version: '1.0.0',
+        inference_mode: 'pending',
+        inference_time: 0,
+        preprocessing_method: 'none',
+      })
+      .select()
+      .single();
+    if (stubError) throw new Error(stubError.message);
+    return scanFromRecord(stub);
+  }
+
+  // Real ML inference path
+  onPhase?.('analyzing');
+  const start = Date.now();
+  let prediction;
+  let inferenceError: string | null = null;
+  try {
+    prediction = await predictFundus(imageUri);
+  } catch (err: any) {
+    inferenceError = err?.message ?? 'Analysis failed';
+  }
+  const inferenceTime = Date.now() - start;
+
+  const insertPayload = prediction
+    ? {
+        patient_id: patientId,
+        original_image_url: urlData.publicUrl,
+        heatmap_image_url: urlData.publicUrl,
+        diagnosis: diagnosisFromPrediction(prediction),
+        severity: mapClassToSeverity(prediction.classId),
+        confidence: Math.round(prediction.confidence * 100),
+        model_version: 'efficientnet_b4_v1',
+        inference_mode: 'remote',
+        inference_time: inferenceTime,
+        preprocessing_method: 'ben_graham',
+        metadata: {
+          probabilities: prediction.probabilities,
+          temperatureUsed: prediction.temperatureUsed,
+          className: prediction.className,
+          calibrated: prediction.calibrated,
+          rawClassId: prediction.classId,
+        },
+      }
+    : {
+        patient_id: patientId,
+        original_image_url: urlData.publicUrl,
+        heatmap_image_url: urlData.publicUrl,
+        diagnosis: 'Analysis failed',
+        severity: 'unknown',
+        confidence: 0,
+        model_version: 'efficientnet_b4_v1',
+        inference_mode: 'failed',
+        inference_time: inferenceTime,
+        preprocessing_method: 'ben_graham',
+        metadata: { error: inferenceError ?? 'unknown error' },
+      };
+
   const { data: scan, error: insertError } = await supabase
     .from('scans')
-    .insert({
-      patient_id: patientId,
-      original_image_url: urlData.publicUrl,
-      heatmap_image_url: urlData.publicUrl, // Placeholder until AI generates heatmap
-      diagnosis: 'Pending Analysis',
-      severity: 'unknown',
-      confidence: 0,
-      model_version: '1.0.0',
-      inference_mode: 'pending',
-      inference_time: 0,
-      preprocessing_method: 'none',
-    })
+    .insert(insertPayload)
     .select()
     .single();
-
   if (insertError) throw new Error(insertError.message);
 
-  return {
-    id: String(scan.id),
-    patientId: scan.patient_id,
-    createdAt: scan.timestamp,
-    imageUrl: scan.original_image_url,
-    diagnosis: scan.diagnosis,
-    severity: scan.severity,
-    confidence: scan.confidence,
-  };
+  // Surface the inference error to the caller AFTER persisting the failed row
+  // so the user sees a meaningful Alert but the upload isn't lost.
+  if (inferenceError) throw new Error(inferenceError);
+
+  return scanFromRecord(scan);
 }
 
 // Alias for doctors uploading scans for their patients

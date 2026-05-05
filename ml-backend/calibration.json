@@ -1,0 +1,11 @@
+{
+  "temperature": 1.7131223678588867,
+  "val_nll_before": 1.0268827676773071,
+  "val_nll_after": 0.7801690697669983,
+  "val_ece_before": 0.1554947012146125,
+  "val_ece_after": 0.07477408028130293,
+  "fitted_on": "validation set",
+  "n_val_samples": 1684,
+  "usage": "At inference: probs = softmax(logits / temperature)",
+  "model_file": "efficientnet_b4_best.pth"
+}

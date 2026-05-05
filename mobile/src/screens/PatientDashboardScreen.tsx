@@ -73,10 +73,11 @@ export default function PatientDashboardScreen() {
 
   const latestScan = scans[0];
   const totalScans = scans.length;
-  // Use useMemo for confidence calculation
-  const latestConfidence = React.useMemo(() =>
-    latestScan?.confidence ? Math.round(latestScan.confidence * 100) : null,
-    [latestScan]);
+  // `scan.confidence` is stored as INTEGER 0–100 in the `scans` table, no scaling needed.
+  const latestConfidence = React.useMemo(
+    () => (typeof latestScan?.confidence === 'number' ? Math.round(latestScan.confidence) : null),
+    [latestScan],
+  );
 
   const renderItem: ListRenderItem<Scan> = useCallback(({ item: scan }) => (
     <PressableCard className="mb-3 mx-4" onPress={() => navigation.navigate('Results', { scanId: scan.id })}>

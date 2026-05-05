@@ -19,7 +19,13 @@ import { Card, CardContent, PressableCard } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { Ionicons } from '@expo/vector-icons';
-import { getMyPatients, uploadScanForPatient, type PatientWithScans, type Scan } from '../lib/api';
+import {
+  getMyPatients,
+  uploadScanForPatient,
+  type PatientWithScans,
+  type Scan,
+  type UploadPhase,
+} from '../lib/api';
 import { formatDate, getSeverityBadgeVariant } from '../lib/utils';
 import type { RootStackParamList } from '../navigation/AppNavigator';
 
@@ -36,6 +42,7 @@ export default function DoctorDashboardScreen() {
   const [showPatientPicker, setShowPatientPicker] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadPhase, setUploadPhase] = useState<UploadPhase | null>(null);
 
   const loadData = useCallback(async () => {
     if (!user?.id) return;
@@ -103,8 +110,13 @@ export default function DoctorDashboardScreen() {
     }
 
     setIsUploading(true);
+    setUploadPhase('uploading');
     try {
-      const scan = await uploadScanForPatient(selectedPatient.id, selectedImage);
+      const scan = await uploadScanForPatient(
+        selectedPatient.id,
+        selectedImage,
+        setUploadPhase,
+      );
       setSelectedImage(null);
       setSelectedPatient(null);
       navigation.navigate('Results', { scanId: scan.id });
@@ -112,6 +124,7 @@ export default function DoctorDashboardScreen() {
       Alert.alert('Upload Failed', error.message || 'Failed to upload scan');
     } finally {
       setIsUploading(false);
+      setUploadPhase(null);
     }
   };
 
@@ -233,26 +246,44 @@ export default function DoctorDashboardScreen() {
               </View>
 
               {/* Image Upload Area */}
-              <TouchableOpacity
-                onPress={handleSelectImage}
-                className="mb-4 items-center justify-center rounded-lg border-2 border-dashed border-primary/30 bg-primary/5 py-10"
-              >
-                {selectedImage ? (
-                  <Image
-                    source={{ uri: selectedImage }}
-                    className="h-32 w-32 rounded-lg"
-                    contentFit="cover"
-                  />
-                ) : (
-                  <>
-                    <View className="mb-2 h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
-                      <Ionicons name="image-outline" size={24} color="#0ea5e9" />
-                    </View>
-                    <Text className="text-sm font-medium text-foreground">Tap to select image</Text>
-                    <Text className="mt-1 text-xs text-muted-foreground">PNG, JPG up to 10MB</Text>
-                  </>
-                )}
-              </TouchableOpacity>
+              {selectedImage ? (
+                <View className="mb-4">
+                  <View className="relative overflow-hidden rounded-lg border border-primary/30 bg-black">
+                    <Image
+                      source={{ uri: selectedImage }}
+                      className="h-64 w-full"
+                      contentFit="contain"
+                    />
+                    <TouchableOpacity
+                      onPress={() => setSelectedImage(null)}
+                      className="absolute right-2 top-2 h-8 w-8 items-center justify-center rounded-full bg-black/60"
+                      hitSlop={8}
+                    >
+                      <Ionicons name="close" size={18} color="#fff" />
+                    </TouchableOpacity>
+                  </View>
+                  <TouchableOpacity
+                    onPress={handleSelectImage}
+                    className="mt-2 flex-row items-center justify-center rounded-lg bg-primary/10 py-2"
+                  >
+                    <Ionicons name="refresh" size={16} color="#0ea5e9" />
+                    <Text className="ml-2 text-sm font-medium text-primary">
+                      Tap to choose a different image
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <TouchableOpacity
+                  onPress={handleSelectImage}
+                  className="mb-4 items-center justify-center rounded-lg border-2 border-dashed border-primary/30 bg-primary/5 py-10"
+                >
+                  <View className="mb-2 h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
+                    <Ionicons name="image-outline" size={24} color="#0ea5e9" />
+                  </View>
+                  <Text className="text-sm font-medium text-foreground">Tap to select image</Text>
+                  <Text className="mt-1 text-xs text-muted-foreground">PNG, JPG up to 10MB</Text>
+                </TouchableOpacity>
+              )}
 
               {/* Run Analysis Button */}
               <Button
@@ -262,7 +293,13 @@ export default function DoctorDashboardScreen() {
                 className="w-full bg-teal-500"
               >
                 <Ionicons name="scan" size={18} color="white" />
-                <Text className="ml-2 font-medium text-white">Run DR Analysis</Text>
+                <Text className="ml-2 font-medium text-white">
+                  {uploadPhase === 'uploading'
+                    ? 'Uploading…'
+                    : uploadPhase === 'analyzing'
+                      ? 'Analyzing…'
+                      : 'Run DR Analysis'}
+                </Text>
               </Button>
             </CardContent>
           </Card>

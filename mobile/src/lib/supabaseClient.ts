@@ -3,7 +3,10 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL!;
-const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!;
+// Accept either the new publishable key (sb_publishable_…) or the legacy JWT
+// anon key, whichever is set in .env. Both formats authenticate the same way.
+const supabaseAnonKey = (process.env.EXPO_PUBLIC_SUPABASE_KEY ||
+  process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY)!;
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {

@@ -122,9 +122,9 @@ export default function HistoryScreen() {
                         <Text className="mt-0.5 text-sm text-muted-foreground">
                           {formatDate(scan.createdAt)}
                         </Text>
-                        {scan.confidence && (
+                        {typeof scan.confidence === 'number' && scan.confidence > 0 && (
                           <Text className="mt-0.5 text-xs text-muted-foreground">
-                            Confidence: {Math.round(scan.confidence * 100)}%
+                            Confidence: {Math.round(scan.confidence)}%
                           </Text>
                         )}
                       </View>

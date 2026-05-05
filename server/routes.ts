@@ -6,6 +6,13 @@ import { fromZodError } from "zod-validation-error";
 import { supabaseAdmin } from "./supabaseClient";
 import multer from "multer";
 import path from "path";
+import {
+  diagnosisFromPrediction,
+  isMlBackendConfigured,
+  mapClassToSeverity,
+  predictFundus,
+  type Prediction,
+} from "./mlClient";
 
 type RequestUser = {
   id: string;
@@ -548,27 +555,64 @@ export async function registerRoutes(
         const { data: publicData } = supabaseAdmin.storage.from("images").getPublicUrl(key);
         const imageUrl = publicData.publicUrl;
 
-        // Placeholder inference - replace with real model call
+        // Run real EfficientNet-B4 inference via the FastAPI backend.
+        // Falls back to a 'pending' stub row when DR_API_URL is unset, so the
+        // existing flow keeps working before the model is deployed.
         const start = Date.now();
-        const severities = ["mild", "moderate", "severe"];
-        const severity = severities[Math.floor(Math.random() * severities.length)];
-        const diagnosis = severity === "severe" ? "Severe DR" : severity === "moderate" ? "Moderate DR" : "Mild DR";
-        const confidence = Math.floor(80 + Math.random() * 20);
+        let prediction: Prediction | null = null;
+        let inferenceError: string | null = null;
+        let inferenceMode: 'remote' | 'failed' | 'pending' = 'pending';
+
+        if (isMlBackendConfigured()) {
+          try {
+            prediction = await predictFundus(file.buffer, file.mimetype, file.originalname);
+            inferenceMode = 'remote';
+          } catch (err: any) {
+            inferenceError = err?.message ?? 'Analysis failed';
+            inferenceMode = 'failed';
+            console.error('ML inference failed:', err);
+          }
+        }
+
         const inferenceTime = Date.now() - start;
 
-        const insertPayload = {
-          patientId,
-          originalImageUrl: imageUrl,
-          heatmapImageUrl: imageUrl,
-          diagnosis,
-          severity,
-          confidence,
-          modelVersion: "stub-v1",
-          inferenceMode: "stub",
-          inferenceTime,
-          preprocessingMethod: "none",
-          metadata: { uploadedBy: req.user.id },
-        };
+        const insertPayload = prediction
+          ? {
+              patientId,
+              originalImageUrl: imageUrl,
+              heatmapImageUrl: imageUrl,
+              diagnosis: diagnosisFromPrediction(prediction),
+              severity: mapClassToSeverity(prediction.classId),
+              confidence: Math.round(prediction.confidence * 100),
+              modelVersion: 'efficientnet_b4_v1',
+              inferenceMode,
+              inferenceTime,
+              preprocessingMethod: 'ben_graham',
+              metadata: {
+                uploadedBy: req.user.id,
+                probabilities: prediction.probabilities,
+                temperatureUsed: prediction.temperatureUsed,
+                className: prediction.className,
+                calibrated: prediction.calibrated,
+                rawClassId: prediction.classId,
+              },
+            }
+          : {
+              patientId,
+              originalImageUrl: imageUrl,
+              heatmapImageUrl: imageUrl,
+              diagnosis: inferenceError ? 'Analysis failed' : 'Pending Analysis',
+              severity: 'unknown',
+              confidence: 0,
+              modelVersion: isMlBackendConfigured() ? 'efficientnet_b4_v1' : '1.0.0',
+              inferenceMode,
+              inferenceTime,
+              preprocessingMethod: isMlBackendConfigured() ? 'ben_graham' : 'none',
+              metadata: {
+                uploadedBy: req.user.id,
+                ...(inferenceError ? { error: inferenceError } : {}),
+              },
+            };
 
         const scan = await storage.createScan(insertPayload as any);
 

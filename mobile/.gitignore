@@ -43,3 +43,4 @@ yarn-error.*
 builds/
 *.apk
 *.aab
+keys/google-play-service-account.json

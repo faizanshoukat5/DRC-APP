@@ -15,7 +15,7 @@ import { useAuthContext } from '../contexts/AuthContext';
 import { Button } from '../components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/Card';
 import { Ionicons } from '@expo/vector-icons';
-import { uploadScan } from '../lib/api';
+import { uploadScan, type UploadPhase } from '../lib/api';
 import type { RootStackParamList } from '../navigation/AppNavigator';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Analysis'>;
@@ -26,6 +26,7 @@ export default function AnalysisScreen() {
 
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadPhase, setUploadPhase] = useState<UploadPhase | null>(null);
 
   const handleSelectImage = async () => {
     const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -68,12 +69,14 @@ export default function AnalysisScreen() {
     if (!selectedImage || !user?.id) return;
 
     setIsUploading(true);
+    setUploadPhase('uploading');
     try {
-      const scanResult = await uploadScan(user.id, selectedImage);
+      const scanResult = await uploadScan(user.id, selectedImage, setUploadPhase);
       navigation.replace('Results', { scanId: scanResult.id });
     } catch (error: any) {
       Alert.alert('Analysis Failed', error.message || 'Failed to analyze image');
       setIsUploading(false);
+      setUploadPhase(null);
     }
   };
 
@@ -125,7 +128,9 @@ export default function AnalysisScreen() {
                 {isUploading ? (
                   <>
                     <ActivityIndicator size="small" color="white" />
-                    <Text className="ml-2 font-medium text-white">Analyzing...</Text>
+                    <Text className="ml-2 font-medium text-white">
+                      {uploadPhase === 'uploading' ? 'Uploading…' : 'Analyzing…'}
+                    </Text>
                   </>
                 ) : (
                   <>

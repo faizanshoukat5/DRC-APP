@@ -76,7 +76,13 @@ export default function ResultsScreen() {
     );
   }
 
-  const confidence = scan.confidence ? Math.round(scan.confidence * 100) : null;
+  // `scan.confidence` is stored as INTEGER 0–100 in the `scans` table.
+  const confidence =
+    typeof scan.confidence === 'number' ? Math.round(scan.confidence) : null;
+  const hasProbabilities =
+    scan.probabilities && Object.keys(scan.probabilities).length > 0;
+  const isLowConfidence = confidence !== null && confidence < 60;
+  const isFailed = scan.inferenceMode === 'failed';
 
   return (
     <SafeAreaView className="flex-1 bg-background">
@@ -145,6 +151,74 @@ export default function ResultsScreen() {
             </CardContent>
           </Card>
         </View>
+
+        {/* Failed-inference banner */}
+        {isFailed && (
+          <View className="mt-4 px-4">
+            <View className="flex-row items-start rounded-lg border border-red-200 bg-red-50 p-3">
+              <Ionicons name="alert-circle" size={20} color="#dc2626" />
+              <Text className="ml-2 flex-1 text-sm text-red-800">
+                The AI model could not analyze this image. The fundus may be too
+                blurry or unsuitable. Please retake the image with better focus
+                and lighting.
+              </Text>
+            </View>
+          </View>
+        )}
+
+        {/* Probability Distribution (only for real-ML rows) */}
+        {hasProbabilities && (
+          <View className="mt-6 px-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Probability Distribution</CardTitle>
+                <CardDescription>
+                  Calibrated per-class confidence
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {(['No DR', 'Mild', 'Moderate', 'Severe', 'Proliferative'] as const).map(
+                  (className) => {
+                    const p = scan.probabilities?.[className] ?? 0;
+                    return (
+                      <View
+                        key={className}
+                        className="mb-3 flex-row items-center"
+                      >
+                        <Text className="w-24 text-sm text-foreground">
+                          {className}
+                        </Text>
+                        <View className="mx-3 h-2 flex-1 overflow-hidden rounded-full bg-muted">
+                          <View
+                            className={`h-full rounded-full ${barColorClass(className)}`}
+                            style={{ width: `${Math.max(0, Math.min(1, p)) * 100}%` }}
+                          />
+                        </View>
+                        <Text className="w-14 text-right text-sm text-muted-foreground">
+                          {(p * 100).toFixed(1)}%
+                        </Text>
+                      </View>
+                    );
+                  },
+                )}
+              </CardContent>
+            </Card>
+          </View>
+        )}
+
+        {/* Low-confidence warning */}
+        {isLowConfidence && !isFailed && (
+          <View className="mt-4 px-4">
+            <View className="rounded-lg border-l-4 border-amber-400 bg-amber-50 p-3">
+              <View className="flex-row items-start">
+                <Ionicons name="warning-outline" size={20} color="#d97706" />
+                <Text className="ml-2 flex-1 text-sm text-amber-900">
+                  Low confidence — strongly recommend specialist review.
+                </Text>
+              </View>
+            </View>
+          </View>
+        )}
 
         {/* Details */}
         <View className="mt-6 px-4">
@@ -241,6 +315,23 @@ export default function ResultsScreen() {
       </ScrollView>
     </SafeAreaView>
   );
+}
+
+function barColorClass(className: string): string {
+  switch (className) {
+    case 'No DR':
+      return 'bg-green-500';
+    case 'Mild':
+      return 'bg-yellow-500';
+    case 'Moderate':
+      return 'bg-orange-500';
+    case 'Severe':
+      return 'bg-red-500';
+    case 'Proliferative':
+      return 'bg-purple-500';
+    default:
+      return 'bg-primary';
+  }
 }
 
 function RecommendationItem({

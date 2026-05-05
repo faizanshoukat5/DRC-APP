@@ -33,6 +33,8 @@ export function getSeverityColor(severity: string): string {
       return 'bg-orange-500';
     case 'severe':
       return 'bg-red-500';
+    case 'proliferative':
+      return 'bg-purple-500';
     case 'normal':
     case 'healthy':
       return 'bg-green-500';
@@ -47,6 +49,7 @@ export function getSeverityBadgeVariant(severity: string): 'success' | 'warning'
       return 'warning';
     case 'moderate':
     case 'severe':
+    case 'proliferative':
       return 'destructive';
     case 'normal':
     case 'healthy':

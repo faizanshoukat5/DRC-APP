@@ -33,5 +33,19 @@
         "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlkZWV3Zmdjb255ZXZmZXZodGdyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU2MTg3OTgsImV4cCI6MjA4MTE5NDc5OH0.CgW3OSAjzTwh_FTXeHqrMA0YfCVxpPQdizF1a3O66Z8"
       }
     }
+  },
+  "submit": {
+    "production": {
+      "android": {
+        "serviceAccountKeyPath": "./keys/google-play-service-account.json",
+        "track": "internal"
+      }
+    },
+    "apk": {
+      "android": {
+        "serviceAccountKeyPath": "./keys/google-play-service-account.json",
+        "track": "internal"
+      }
+    }
   }
 }

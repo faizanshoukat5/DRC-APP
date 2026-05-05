@@ -6,3 +6,4 @@ vite.config.ts.*
 *.tar.gz
 .env
 .env.server
+ml-backend/efficientnet_b4_best.pth
