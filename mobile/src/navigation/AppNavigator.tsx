@@ -4,6 +4,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { ActivityIndicator, View } from 'react-native';
 import { useAuthContext } from '../contexts/AuthContext';
+import OfflineBanner from '../components/OfflineBanner';
 
 // Screens
 import LandingScreen from '../screens/LandingScreen';
@@ -175,6 +176,7 @@ export default function AppNavigator() {
 
   return (
     <NavigationContainer>
+      <OfflineBanner />
       <Stack.Navigator
         screenOptions={{
           headerShown: false,

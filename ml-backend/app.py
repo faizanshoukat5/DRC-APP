@@ -34,9 +34,12 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from fastapi import Depends, FastAPI, File, Header, HTTPException, UploadFile
+from fastapi import Depends, FastAPI, File, Header, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from PIL import Image
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.util import get_remote_address
 from torchvision import transforms
 from torchvision.models import efficientnet_b4
 
@@ -175,12 +178,26 @@ app = FastAPI(
     description="EfficientNet-B4 trained on 11k fundus images. Returns calibrated probabilities.",
 )
 
+# CORS: comma-separated allowlist via DR_CORS_ORIGINS env var.
+# Default is "*" so local dev keeps working out of the box, but production
+# deployments should set this to specific origins (e.g. the web app's domain).
+# Mobile apps don't enforce CORS, so this only affects browser-based callers.
+_CORS_ORIGINS = [
+    o.strip() for o in os.environ.get("DR_CORS_ORIGINS", "*").split(",") if o.strip()
+]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=_CORS_ORIGINS,
     allow_methods=["GET", "POST"],
     allow_headers=["*"],
 )
+
+# Rate limiting: default 20 req/min per IP. Override with DR_RATE_LIMIT
+# (slowapi syntax, e.g. "10/minute"). Prevents drive-by abuse on a public Space.
+_RATE_LIMIT = os.environ.get("DR_RATE_LIMIT", "20/minute")
+limiter = Limiter(key_func=get_remote_address, default_limits=[_RATE_LIMIT])
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 
 @app.get("/")
@@ -200,7 +217,12 @@ def health():
 
 
 @app.post("/predict")
-async def predict(file: UploadFile = File(...), _: None = Depends(_check_key)):
+@limiter.limit(_RATE_LIMIT)
+async def predict(
+    request: Request,
+    file: UploadFile = File(...),
+    _: None = Depends(_check_key),
+):
     """Upload a fundus image, get a DR severity prediction with calibrated confidence."""
     if not file.content_type or not file.content_type.startswith("image/"):
         raise HTTPException(status_code=400, detail="upload must be an image")
