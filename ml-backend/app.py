@@ -89,7 +89,13 @@ def _ben_graham(img_bgr: np.ndarray, target: int = IMG_SIZE, sigma_x: int = 10) 
 
 
 # ─── Optional sanity gate: reject blurry / non-fundus uploads ─────────────
-def _is_likely_fundus(img_bgr: np.ndarray, blur_threshold: float = 50.0) -> tuple[bool, str]:
+# Threshold is configurable via env var so it can be tuned without redeploying
+# the app. Real fundus images typically score 10–200; clinical photos with
+# low contrast or compression can dip below 20. Default chosen permissively.
+_BLUR_THRESHOLD = float(os.environ.get("DR_BLUR_THRESHOLD", "5.0"))
+
+
+def _is_likely_fundus(img_bgr: np.ndarray, blur_threshold: float = _BLUR_THRESHOLD) -> tuple[bool, str]:
     """Cheap quality check using Laplacian variance on the green channel.
     Fundus images have a sharp vessel structure -> high Laplacian variance.
     Returns (ok, reason)."""
