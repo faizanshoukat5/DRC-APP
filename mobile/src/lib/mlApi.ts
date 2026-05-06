@@ -5,6 +5,8 @@ export interface Prediction {
   probabilities: Record<string, number>;
   calibrated: boolean;
   temperatureUsed: number;
+  /** Base64-encoded PNG of the Grad-CAM overlay, when the backend returns one. */
+  heatmapBase64?: string;
 }
 
 export type SeverityTier = 'normal' | 'mild' | 'moderate' | 'severe';
@@ -85,5 +87,8 @@ export async function predictFundus(imageUri: string): Promise<Prediction> {
     probabilities: body.probabilities ?? {},
     calibrated: !!body.calibrated,
     temperatureUsed: Number(body.temperature_used ?? 1),
+    heatmapBase64: typeof body.heatmap_b64 === 'string' && body.heatmap_b64.length > 0
+      ? body.heatmap_b64
+      : undefined,
   };
 }

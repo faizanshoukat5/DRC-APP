@@ -152,11 +152,32 @@ export async function uploadScan(
   }
   const inferenceTime = Date.now() - start;
 
+  // If the backend returned a Grad-CAM PNG, upload it as a real second image
+  // alongside the original. Failure here is non-fatal — we fall back to the
+  // original URL so the scan row never gets lost.
+  let heatmapUrl = urlData.publicUrl;
+  if (prediction?.heatmapBase64) {
+    try {
+      const heatmapBytes = Uint8Array.from(atob(prediction.heatmapBase64), (c) => c.charCodeAt(0));
+      const heatmapName = `${patientId}/heatmap_${Date.now()}.png`;
+      const { error: heatmapUploadError } = await supabase.storage
+        .from('scans')
+        .upload(heatmapName, heatmapBytes, { contentType: 'image/png', upsert: false });
+      if (!heatmapUploadError) {
+        heatmapUrl = supabase.storage.from('scans').getPublicUrl(heatmapName).data.publicUrl;
+      } else {
+        console.warn('Heatmap upload failed, falling back to original:', heatmapUploadError.message);
+      }
+    } catch (err) {
+      console.warn('Heatmap decode/upload threw, falling back to original:', err);
+    }
+  }
+
   const insertPayload = prediction
     ? {
         patient_id: patientId,
         original_image_url: urlData.publicUrl,
-        heatmap_image_url: urlData.publicUrl,
+        heatmap_image_url: heatmapUrl,
         diagnosis: diagnosisFromPrediction(prediction),
         severity: mapClassToSeverity(prediction.classId),
         confidence: Math.round(prediction.confidence * 100),

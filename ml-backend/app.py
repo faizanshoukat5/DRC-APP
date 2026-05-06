@@ -24,6 +24,7 @@ THEN HIT IT:
        -F "file=@/path/to/fundus.jpg"
 """
 
+import base64
 import io
 import json
 import os
@@ -129,10 +130,64 @@ _infer_tf = transforms.Compose([
 ])
 
 
+# ─── Grad-CAM helpers ─────────────────────────────────────────────────────
+# Hook the final MBConv block of EfficientNet-B4 — that's where the highest-
+# level discriminative feature maps live before global pooling. Standard
+# Grad-CAM target for this architecture.
+
+
+def _gradcam_overlay(activations: torch.Tensor,
+                     gradients: torch.Tensor,
+                     base_rgb: np.ndarray,
+                     alpha: float = 0.45) -> np.ndarray:
+    """Standard Grad-CAM: weight feature maps by spatially-averaged gradients,
+    ReLU, normalize, resize, JET colormap, blend onto `base_rgb`.
+
+    activations: (1, C, H, W) feature maps from the hooked layer
+    gradients:   (1, C, H, W) gradients of class score w.r.t. activations
+    base_rgb:    (H_img, W_img, 3) uint8 RGB image to blend onto
+    """
+    # Channel weights = global-average-pool of gradients
+    weights = gradients.mean(dim=(2, 3), keepdim=True)         # (1, C, 1, 1)
+    cam = (weights * activations).sum(dim=1, keepdim=False)    # (1, H, W)
+    cam = F.relu(cam)[0]                                        # (H, W)
+
+    cam_np = cam.detach().cpu().numpy().astype(np.float32)
+    cam_min, cam_max = cam_np.min(), cam_np.max()
+    if cam_max - cam_min < 1e-6:
+        cam_norm = np.zeros_like(cam_np, dtype=np.uint8)
+    else:
+        cam_norm = ((cam_np - cam_min) / (cam_max - cam_min) * 255).astype(np.uint8)
+
+    h_img, w_img = base_rgb.shape[:2]
+    cam_resized = cv2.resize(cam_norm, (w_img, h_img), interpolation=cv2.INTER_LINEAR)
+    heatmap_bgr = cv2.applyColorMap(cam_resized, cv2.COLORMAP_JET)
+    heatmap_rgb = cv2.cvtColor(heatmap_bgr, cv2.COLOR_BGR2RGB)
+
+    # Blend: alpha on heatmap, 1-alpha on base image
+    blended = cv2.addWeighted(heatmap_rgb, alpha, base_rgb, 1 - alpha, 0)
+    return blended
+
+
+def _encode_png_b64(img_rgb: np.ndarray) -> str:
+    """Encode an RGB uint8 image as base64-encoded PNG string."""
+    img_bgr = cv2.cvtColor(img_rgb, cv2.COLOR_RGB2BGR)
+    ok, buf = cv2.imencode(".png", img_bgr)
+    if not ok:
+        return ""
+    return base64.b64encode(buf.tobytes()).decode("ascii")
+
+
 # ─── Core prediction ──────────────────────────────────────────────────────
-@torch.no_grad()
-def predict_bytes(image_bytes: bytes, calibrated: bool = True) -> dict:
-    """Run the full pipeline on raw image bytes."""
+def predict_bytes(image_bytes: bytes,
+                  calibrated: bool = True,
+                  with_heatmap: bool = True) -> dict:
+    """Run the full pipeline on raw image bytes.
+
+    When `with_heatmap=True` the response includes a base64-encoded PNG
+    Grad-CAM overlay under `heatmap_b64`. Costs one extra forward+backward
+    pass (~600 ms on CPU).
+    """
     arr = np.frombuffer(image_bytes, dtype=np.uint8)
     img_bgr = cv2.imdecode(arr, cv2.IMREAD_COLOR)
     if img_bgr is None:
@@ -142,13 +197,57 @@ def predict_bytes(image_bytes: bytes, calibrated: bool = True) -> dict:
     if not ok:
         raise ValueError(f"image quality check failed: {reason}")
 
-    pre = _ben_graham(img_bgr)
-    x = _infer_tf(Image.fromarray(pre)).unsqueeze(0).to(DEVICE)
-    logits = _model(x)
-    if calibrated:
-        logits = logits / _CALIB_T
-    probs = F.softmax(logits, dim=1).cpu().numpy()[0]
-    cls = int(probs.argmax())
+    pre_rgb = _ben_graham(img_bgr)  # (H, W, 3) uint8 RGB after preprocessing
+    x = _infer_tf(Image.fromarray(pre_rgb)).unsqueeze(0).to(DEVICE)
+
+    # Hook capture for Grad-CAM. We always run with grad enabled when a
+    # heatmap is requested; otherwise we keep the cheap no-grad path.
+    if not with_heatmap:
+        with torch.no_grad():
+            logits = _model(x)
+            if calibrated:
+                logits = logits / _CALIB_T
+            probs = F.softmax(logits, dim=1).cpu().numpy()[0]
+            cls = int(probs.argmax())
+        return {
+            "class_id":         cls,
+            "class_name":       CLASS_NAMES[cls],
+            "confidence":       float(probs[cls]),
+            "probabilities":    {CLASS_NAMES[i]: float(probs[i]) for i in range(5)},
+            "calibrated":       calibrated,
+            "temperature_used": _CALIB_T if calibrated else 1.0,
+        }
+
+    # ─── Grad-CAM path: forward with grad, hook activations, autograd.grad ───
+    activations: dict[str, torch.Tensor] = {}
+
+    def _fwd_hook(_module, _inp, output):
+        activations["value"] = output
+
+    target_layer = _model.features[-1]
+    handle = target_layer.register_forward_hook(_fwd_hook)
+    try:
+        logits = _model(x)
+        with torch.no_grad():
+            scaled_logits = logits / _CALIB_T if calibrated else logits
+            probs = F.softmax(scaled_logits, dim=1).cpu().numpy()[0]
+            cls = int(probs.argmax())
+
+        feats = activations["value"]
+        # autograd.grad works on intermediate (non-leaf) tensors; .backward
+        # would require feats.requires_grad and a manual .retain_grad() call.
+        grads = torch.autograd.grad(
+            outputs=logits[0, cls],
+            inputs=feats,
+            retain_graph=False,
+            create_graph=False,
+        )[0]
+    finally:
+        handle.remove()
+
+    overlay_rgb = _gradcam_overlay(feats, grads, pre_rgb)
+    heatmap_b64 = _encode_png_b64(overlay_rgb)
+
     return {
         "class_id":         cls,
         "class_name":       CLASS_NAMES[cls],
@@ -156,6 +255,7 @@ def predict_bytes(image_bytes: bytes, calibrated: bool = True) -> dict:
         "probabilities":    {CLASS_NAMES[i]: float(probs[i]) for i in range(5)},
         "calibrated":       calibrated,
         "temperature_used": _CALIB_T if calibrated else 1.0,
+        "heatmap_b64":      heatmap_b64,
     }
 
 

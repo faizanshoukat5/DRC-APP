@@ -37,6 +37,7 @@ export default function ResultsScreen() {
   const [isEditingNotes, setIsEditingNotes] = useState(false);
   const [notesDraft, setNotesDraft] = useState('');
   const [isSavingNotes, setIsSavingNotes] = useState(false);
+  const [imageView, setImageView] = useState<'original' | 'heatmap'>('original');
 
   useEffect(() => {
     const loadScan = async () => {
@@ -106,6 +107,9 @@ export default function ResultsScreen() {
     scan.probabilities && Object.keys(scan.probabilities).length > 0;
   const isLowConfidence = confidence !== null && confidence < 60;
   const isFailed = scan.inferenceMode === 'failed';
+  const hasDistinctHeatmap = !!scan.heatmapUrl && scan.heatmapUrl !== scan.imageUrl;
+  const displayUri =
+    imageView === 'heatmap' && hasDistinctHeatmap ? scan.heatmapUrl : scan.imageUrl;
 
   return (
     <SafeAreaView className="flex-1 bg-background">
@@ -123,11 +127,44 @@ export default function ResultsScreen() {
           </View>
         </View>
 
-        {/* Image */}
+        {/* Image with optional Original/Heatmap toggle */}
         <View className="mt-6 px-4">
-          {scan.imageUrl ? (
+          {hasDistinctHeatmap && (
+            <View className="mb-3 flex-row self-start rounded-full bg-muted p-1">
+              <TouchableOpacity
+                onPress={() => setImageView('original')}
+                className={`rounded-full px-4 py-1.5 ${
+                  imageView === 'original' ? 'bg-primary/10' : ''
+                }`}
+              >
+                <Text
+                  className={`text-xs font-medium ${
+                    imageView === 'original' ? 'text-primary' : 'text-muted-foreground'
+                  }`}
+                >
+                  Original
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => setImageView('heatmap')}
+                className={`rounded-full px-4 py-1.5 ${
+                  imageView === 'heatmap' ? 'bg-primary/10' : ''
+                }`}
+              >
+                <Text
+                  className={`text-xs font-medium ${
+                    imageView === 'heatmap' ? 'text-primary' : 'text-muted-foreground'
+                  }`}
+                >
+                  Heatmap
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {displayUri ? (
             <Image
-              source={{ uri: scan.imageUrl }}
+              source={{ uri: displayUri }}
               className="h-64 w-full rounded-xl"
               resizeMode="cover"
             />
@@ -136,6 +173,12 @@ export default function ResultsScreen() {
               <Ionicons name="eye" size={64} color="#9ca3af" />
               <Text className="mt-2 text-muted-foreground">No image available</Text>
             </View>
+          )}
+
+          {hasDistinctHeatmap && imageView === 'heatmap' && (
+            <Text className="mt-2 text-xs text-muted-foreground">
+              Warm (red/yellow) areas show regions the AI focused on for this diagnosis.
+            </Text>
           )}
         </View>
 
