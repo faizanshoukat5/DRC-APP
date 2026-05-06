@@ -39,7 +39,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from PIL import Image
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
-from slowapi.util import get_remote_address
 from torchvision import transforms
 from torchvision.models import efficientnet_b4
 
@@ -192,10 +191,23 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Rate limiting: default 20 req/min per IP. Override with DR_RATE_LIMIT
-# (slowapi syntax, e.g. "10/minute"). Prevents drive-by abuse on a public Space.
+# Rate limiting: default 20 req/min per real client IP. Override with
+# DR_RATE_LIMIT (slowapi syntax, e.g. "10/minute"). Prevents drive-by abuse.
+#
+# IMPORTANT: HF Space puts a reverse proxy in front of uvicorn, so
+# request.client.host resolves to a varying internal IP (which would defeat
+# any per-IP limit). We extract the real client IP from x-forwarded-for
+# (left-most entry, RFC 7239), falling back to request.client.host for
+# direct deployments.
+def _client_ip_key(request: Request) -> str:
+    fwd = request.headers.get("x-forwarded-for")
+    if fwd:
+        return fwd.split(",")[0].strip()
+    return request.client.host if request.client else "anonymous"
+
+
 _RATE_LIMIT = os.environ.get("DR_RATE_LIMIT", "20/minute")
-limiter = Limiter(key_func=get_remote_address, default_limits=[_RATE_LIMIT])
+limiter = Limiter(key_func=_client_ip_key, default_limits=[_RATE_LIMIT])
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
