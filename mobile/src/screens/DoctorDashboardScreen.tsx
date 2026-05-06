@@ -250,10 +250,13 @@ export default function DoctorDashboardScreen() {
               {/* Image Upload Area */}
               {selectedImage ? (
                 <View className="mb-4">
-                  <View className="relative overflow-hidden rounded-lg border border-primary/30 bg-black">
+                  <View
+                    className="relative overflow-hidden rounded-lg border border-primary/30 bg-black"
+                    style={{ height: 256, width: '100%' }}
+                  >
                     <Image
                       source={{ uri: selectedImage }}
-                      className="h-64 w-full"
+                      style={{ width: '100%', height: '100%' }}
                       contentFit="contain"
                     />
                     <TouchableOpacity
