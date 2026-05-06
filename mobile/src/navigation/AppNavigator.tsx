@@ -10,6 +10,7 @@ import OfflineBanner from '../components/OfflineBanner';
 import LandingScreen from '../screens/LandingScreen';
 import SignInScreen from '../screens/SignInScreen';
 import SignUpScreen from '../screens/SignUpScreen';
+import ForgotPasswordScreen from '../screens/ForgotPasswordScreen';
 import PatientDashboardScreen from '../screens/PatientDashboardScreen';
 import DoctorDashboardScreen from '../screens/DoctorDashboardScreen';
 import AdminDashboardScreen from '../screens/AdminDashboardScreen';
@@ -28,6 +29,7 @@ export type RootStackParamList = {
   Landing: undefined;
   SignIn: undefined;
   SignUp: undefined;
+  ForgotPassword: undefined;
   MainTabs: undefined;
   Results: { scanId: string };
   Analysis: undefined;
@@ -187,6 +189,7 @@ export default function AppNavigator() {
             <Stack.Screen name="Landing" component={LandingScreen} />
             <Stack.Screen name="SignIn" component={SignInScreen} />
             <Stack.Screen name="SignUp" component={SignUpScreen} />
+            <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
           </>
         ) : (
           <>

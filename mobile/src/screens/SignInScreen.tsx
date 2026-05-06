@@ -143,6 +143,14 @@ export default function SignInScreen() {
                 >
                   Sign in
                 </Button>
+
+                <TouchableOpacity
+                  onPress={() => navigation.navigate('ForgotPassword')}
+                  className="mt-3 self-center"
+                  hitSlop={8}
+                >
+                  <Text className="text-sm font-medium text-primary">Forgot password?</Text>
+                </TouchableOpacity>
               </CardContent>
             </Card>
 

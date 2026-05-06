@@ -6,6 +6,8 @@ import {
   Image,
   ActivityIndicator,
   TouchableOpacity,
+  TextInput,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
@@ -14,7 +16,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../co
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { Ionicons } from '@expo/vector-icons';
-import { getScan, type Scan } from '../lib/api';
+import { getScan, updateScanDoctorNotes, type Scan } from '../lib/api';
+import { useAuthContext } from '../contexts/AuthContext';
 import { formatDateTime, getSeverityBadgeVariant } from '../lib/utils';
 import type { RootStackParamList } from '../navigation/AppNavigator';
 
@@ -25,16 +28,22 @@ export default function ResultsScreen() {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<ResultsRouteProp>();
   const { scanId } = route.params;
+  const { user } = useAuthContext();
+  const isDoctor = user?.role === 'doctor';
 
   const [scan, setScan] = useState<Scan | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isEditingNotes, setIsEditingNotes] = useState(false);
+  const [notesDraft, setNotesDraft] = useState('');
+  const [isSavingNotes, setIsSavingNotes] = useState(false);
 
   useEffect(() => {
     const loadScan = async () => {
       try {
         const data = await getScan(scanId);
         setScan(data);
+        setNotesDraft(data?.doctorNotes ?? '');
       } catch (err: any) {
         setError(err.message || 'Failed to load scan results');
       } finally {
@@ -44,6 +53,20 @@ export default function ResultsScreen() {
 
     loadScan();
   }, [scanId]);
+
+  const handleSaveNotes = async () => {
+    if (!scan) return;
+    setIsSavingNotes(true);
+    try {
+      await updateScanDoctorNotes(scan.id, notesDraft);
+      setScan({ ...scan, doctorNotes: notesDraft.trim() });
+      setIsEditingNotes(false);
+    } catch (err: any) {
+      Alert.alert('Could not save notes', err.message || 'Unknown error');
+    } finally {
+      setIsSavingNotes(false);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -238,18 +261,84 @@ export default function ResultsScreen() {
           </Card>
         </View>
 
-        {/* Doctor Notes */}
-        {scan.doctorNotes && (
+        {/* Doctor Notes — read-only for patients, editable for doctors */}
+        {(scan.doctorNotes || isDoctor) && (
           <View className="mt-6 px-4">
             <Card className="border-green-200 bg-green-50">
               <CardHeader>
-                <View className="flex-row items-center">
-                  <Ionicons name="medical" size={20} color="#22c55e" />
-                  <CardTitle className="ml-2 text-green-800">Doctor's Notes</CardTitle>
+                <View className="flex-row items-center justify-between">
+                  <View className="flex-row items-center">
+                    <Ionicons name="medical" size={20} color="#22c55e" />
+                    <CardTitle className="ml-2 text-green-800">Doctor's Notes</CardTitle>
+                  </View>
+                  {isDoctor && !isEditingNotes && (
+                    <TouchableOpacity
+                      onPress={() => {
+                        setNotesDraft(scan.doctorNotes ?? '');
+                        setIsEditingNotes(true);
+                      }}
+                      className="flex-row items-center"
+                      hitSlop={8}
+                    >
+                      <Ionicons
+                        name={scan.doctorNotes ? 'pencil' : 'add-circle-outline'}
+                        size={18}
+                        color="#15803d"
+                      />
+                      <Text className="ml-1 text-sm font-medium text-green-800">
+                        {scan.doctorNotes ? 'Edit' : 'Add'}
+                      </Text>
+                    </TouchableOpacity>
+                  )}
                 </View>
               </CardHeader>
               <CardContent>
-                <Text className="text-green-900">{scan.doctorNotes}</Text>
+                {isEditingNotes ? (
+                  <View>
+                    <TextInput
+                      value={notesDraft}
+                      onChangeText={setNotesDraft}
+                      placeholder="Add clinical observations or recommendations..."
+                      placeholderTextColor="#9ca3af"
+                      multiline
+                      textAlignVertical="top"
+                      maxLength={1000}
+                      editable={!isSavingNotes}
+                      className="rounded-md border border-green-300 bg-white px-3 py-2 text-foreground"
+                      style={{ minHeight: 96 }}
+                    />
+                    <Text className="mt-1 text-right text-xs text-green-700">
+                      {notesDraft.length}/1000
+                    </Text>
+                    <View className="mt-3 flex-row justify-end">
+                      <TouchableOpacity
+                        onPress={() => {
+                          setNotesDraft(scan.doctorNotes ?? '');
+                          setIsEditingNotes(false);
+                        }}
+                        disabled={isSavingNotes}
+                        className="mr-3 rounded-md px-4 py-2"
+                      >
+                        <Text className="text-sm font-medium text-muted-foreground">Cancel</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        onPress={handleSaveNotes}
+                        disabled={isSavingNotes}
+                        className="rounded-md bg-green-600 px-4 py-2"
+                      >
+                        {isSavingNotes ? (
+                          <ActivityIndicator size="small" color="#fff" />
+                        ) : (
+                          <Text className="text-sm font-medium text-white">Save</Text>
+                        )}
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                ) : scan.doctorNotes ? (
+                  <Text className="text-green-900">{scan.doctorNotes}</Text>
+                ) : (
+                  <Text className="italic text-green-700">No notes yet — tap Add to record observations.</Text>
+                )}
               </CardContent>
             </Card>
           </View>

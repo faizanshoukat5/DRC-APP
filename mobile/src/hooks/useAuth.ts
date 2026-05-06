@@ -250,6 +250,21 @@ export function useAuth() {
     setIsLoading(false);
   }, []);
 
+  const requestPasswordReset = useCallback(async (email: string) => {
+    const trimmed = email.trim();
+    if (!trimmed) throw new Error('Please enter your email address.');
+    const { error } = await supabase.auth.resetPasswordForEmail(trimmed);
+    if (error) throw new Error(error.message);
+  }, []);
+
+  const updatePassword = useCallback(async (newPassword: string) => {
+    if (!newPassword || newPassword.length < 8) {
+      throw new Error('Password must be at least 8 characters long.');
+    }
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    if (error) throw new Error(error.message);
+  }, []);
+
   const state: AuthState = useMemo(() => ({
     user,
     isLoading,
@@ -264,5 +279,7 @@ export function useAuth() {
     signInWithPassword,
     signUpWithPassword,
     signOut,
+    requestPasswordReset,
+    updatePassword,
   };
 }

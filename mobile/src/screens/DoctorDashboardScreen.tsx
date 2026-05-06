@@ -7,6 +7,7 @@ import {
   Alert,
   ActivityIndicator,
   TouchableOpacity,
+  TextInput,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AppHeader from '../components/ui/AppHeader';
@@ -41,6 +42,7 @@ export default function DoctorDashboardScreen() {
   const [selectedPatient, setSelectedPatient] = useState<PatientWithScans | null>(null);
   const [showPatientPicker, setShowPatientPicker] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [doctorNotes, setDoctorNotes] = useState('');
   const [isUploading, setIsUploading] = useState(false);
   const [uploadPhase, setUploadPhase] = useState<UploadPhase | null>(null);
 
@@ -112,13 +114,13 @@ export default function DoctorDashboardScreen() {
     setIsUploading(true);
     setUploadPhase('uploading');
     try {
-      const scan = await uploadScanForPatient(
-        selectedPatient.id,
-        selectedImage,
-        setUploadPhase,
-      );
+      const scan = await uploadScanForPatient(selectedPatient.id, selectedImage, {
+        onPhase: setUploadPhase,
+        doctorNotes,
+      });
       setSelectedImage(null);
       setSelectedPatient(null);
+      setDoctorNotes('');
       navigation.navigate('Results', { scanId: scan.id });
     } catch (error: any) {
       Alert.alert('Upload Failed', error.message || 'Failed to upload scan');
@@ -284,6 +286,28 @@ export default function DoctorDashboardScreen() {
                   <Text className="mt-1 text-xs text-muted-foreground">PNG, JPG up to 10MB</Text>
                 </TouchableOpacity>
               )}
+
+              {/* Doctor Notes (optional) */}
+              <View className="mb-4">
+                <Text className="mb-2 text-sm font-medium text-foreground">
+                  Doctor's Notes <Text className="text-muted-foreground">(optional)</Text>
+                </Text>
+                <TextInput
+                  value={doctorNotes}
+                  onChangeText={setDoctorNotes}
+                  placeholder="Add clinical observations, recommendations, or context for the patient..."
+                  placeholderTextColor="#9ca3af"
+                  multiline
+                  numberOfLines={4}
+                  textAlignVertical="top"
+                  maxLength={1000}
+                  className="rounded-lg border border-input bg-background px-3 py-2 text-foreground"
+                  style={{ minHeight: 96 }}
+                />
+                <Text className="mt-1 text-right text-xs text-muted-foreground">
+                  {doctorNotes.length}/1000
+                </Text>
+              </View>
 
               {/* Run Analysis Button */}
               <Button

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -13,6 +13,7 @@ import { useAuthContext } from '../contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Ionicons } from '@expo/vector-icons';
+import ChangePasswordModal from '../components/ChangePasswordModal';
 import type { RootStackParamList } from '../navigation/AppNavigator';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Settings'>;
@@ -20,6 +21,7 @@ type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Settings'>;
 export default function SettingsScreen() {
   const navigation = useNavigation<NavigationProp>();
   const { user, signOut, isLoading } = useAuthContext();
+  const [showChangePassword, setShowChangePassword] = useState(false);
 
   const handleSignOut = () => {
     Alert.alert(
@@ -106,6 +108,22 @@ export default function SettingsScreen() {
           </Card>
         </View>
 
+        {/* Security */}
+        <View className="mt-6 px-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Security</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <SettingLink
+                icon="key-outline"
+                label="Change Password"
+                onPress={() => setShowChangePassword(true)}
+              />
+            </CardContent>
+          </Card>
+        </View>
+
         {/* Quick Links */}
         <View className="mt-6 px-4">
           <Card>
@@ -173,6 +191,11 @@ export default function SettingsScreen() {
           </Button>
         </View>
       </ScrollView>
+
+      <ChangePasswordModal
+        visible={showChangePassword}
+        onClose={() => setShowChangePassword(false)}
+      />
     </SafeAreaView>
   );
 }

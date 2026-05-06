@@ -75,11 +75,24 @@ export async function getScan(id: string): Promise<Scan | null> {
   return scanFromRecord(data);
 }
 
+export interface UploadScanOptions {
+  onPhase?: (phase: UploadPhase) => void;
+  doctorNotes?: string;
+}
+
 export async function uploadScan(
   patientId: string,
   imageUri: string,
-  onPhase?: (phase: UploadPhase) => void,
+  optionsOrCallback?: UploadScanOptions | ((phase: UploadPhase) => void),
 ): Promise<Scan> {
+  // Backward-compat: third arg used to be a phase callback only.
+  const options: UploadScanOptions =
+    typeof optionsOrCallback === 'function'
+      ? { onPhase: optionsOrCallback }
+      : optionsOrCallback ?? {};
+  const { onPhase, doctorNotes } = options;
+  const trimmedNotes = doctorNotes?.trim();
+
   onPhase?.('uploading');
 
   const fileInfo = await FileSystem.getInfoAsync(imageUri);
@@ -119,6 +132,7 @@ export async function uploadScan(
         inference_mode: 'pending',
         inference_time: 0,
         preprocessing_method: 'none',
+        ...(trimmedNotes ? { doctor_notes: trimmedNotes } : {}),
       })
       .select()
       .single();
@@ -157,6 +171,7 @@ export async function uploadScan(
           calibrated: prediction.calibrated,
           rawClassId: prediction.classId,
         },
+        ...(trimmedNotes ? { doctor_notes: trimmedNotes } : {}),
       }
     : {
         patient_id: patientId,
@@ -170,6 +185,7 @@ export async function uploadScan(
         inference_time: inferenceTime,
         preprocessing_method: 'ben_graham',
         metadata: { error: inferenceError ?? 'unknown error' },
+        ...(trimmedNotes ? { doctor_notes: trimmedNotes } : {}),
       };
 
   const { data: scan, error: insertError } = await supabase
@@ -188,6 +204,15 @@ export async function uploadScan(
 
 // Alias for doctors uploading scans for their patients
 export const uploadScanForPatient = uploadScan;
+
+export async function updateScanDoctorNotes(scanId: string, notes: string): Promise<void> {
+  const trimmed = notes.trim();
+  const { error } = await supabase
+    .from('scans')
+    .update({ doctor_notes: trimmed.length > 0 ? trimmed : null })
+    .eq('id', scanId);
+  if (error) throw new Error(error.message);
+}
 
 export interface ApprovedDoctor {
   id: string;

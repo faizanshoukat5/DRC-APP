@@ -11,6 +11,8 @@ type AuthContextValue = {
   signInWithPassword: (email: string, password: string) => Promise<any>;
   signUpWithPassword: (payload: SignUpPayload) => Promise<any>;
   signOut: () => Promise<void>;
+  requestPasswordReset: (email: string) => Promise<void>;
+  updatePassword: (newPassword: string) => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
