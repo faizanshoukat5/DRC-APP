@@ -89,6 +89,16 @@ def _ben_graham(img_bgr: np.ndarray, target: int = IMG_SIZE, sigma_x: int = 10) 
     return cv2.addWeighted(img, 4, blur, -4, 128)
 
 
+def _cropped_rgb_for_overlay(img_bgr: np.ndarray, target: int = IMG_SIZE) -> np.ndarray:
+    """Original-looking RGB crop used as the heatmap base layer.
+    Same fundus crop as the model sees, but WITHOUT the Ben-Graham
+    contrast manipulation, so the doctor sees a recognizable retina.
+    """
+    img = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)
+    img = _crop_to_fundus(img)
+    return cv2.resize(img, (target, target), interpolation=cv2.INTER_AREA)
+
+
 # ─── Optional sanity gate: reject blurry / non-fundus uploads ─────────────
 # Threshold is configurable via env var so it can be tuned without redeploying
 # the app. Real fundus images typically score 10–200; clinical photos with
@@ -139,13 +149,18 @@ _infer_tf = transforms.Compose([
 def _gradcam_overlay(activations: torch.Tensor,
                      gradients: torch.Tensor,
                      base_rgb: np.ndarray,
-                     alpha: float = 0.45) -> np.ndarray:
-    """Standard Grad-CAM: weight feature maps by spatially-averaged gradients,
-    ReLU, normalize, resize, JET colormap, blend onto `base_rgb`.
+                     max_alpha: float = 0.65,
+                     attention_threshold: float = 0.35) -> np.ndarray:
+    """Grad-CAM overlay tuned for clinical readability.
 
-    activations: (1, C, H, W) feature maps from the hooked layer
-    gradients:   (1, C, H, W) gradients of class score w.r.t. activations
-    base_rgb:    (H_img, W_img, 3) uint8 RGB image to blend onto
+    - Weight feature maps by spatially-averaged gradients (standard Grad-CAM).
+    - ReLU + normalize 0..1.
+    - Resize to base image, smooth with a small Gaussian to avoid blocky pixels.
+    - Soft-threshold below `attention_threshold` so cool/blue regions don't
+      tint the entire fundus — only warm regions are blended.
+    - TURBO colormap: perceptually uniform, more modern than JET.
+    - Per-pixel alpha = clip((cam - threshold) / (1 - threshold), 0, 1) * max_alpha
+      so the strongest attention dominates and weak attention fades to zero.
     """
     # Channel weights = global-average-pool of gradients
     weights = gradients.mean(dim=(2, 3), keepdim=True)         # (1, C, 1, 1)
@@ -155,18 +170,32 @@ def _gradcam_overlay(activations: torch.Tensor,
     cam_np = cam.detach().cpu().numpy().astype(np.float32)
     cam_min, cam_max = cam_np.min(), cam_np.max()
     if cam_max - cam_min < 1e-6:
-        cam_norm = np.zeros_like(cam_np, dtype=np.uint8)
-    else:
-        cam_norm = ((cam_np - cam_min) / (cam_max - cam_min) * 255).astype(np.uint8)
+        # Model attended uniformly — return the base unchanged rather than
+        # painting the whole image one color.
+        return base_rgb.copy()
+
+    cam_unit = (cam_np - cam_min) / (cam_max - cam_min)        # (H, W) in [0, 1]
 
     h_img, w_img = base_rgb.shape[:2]
-    cam_resized = cv2.resize(cam_norm, (w_img, h_img), interpolation=cv2.INTER_LINEAR)
-    heatmap_bgr = cv2.applyColorMap(cam_resized, cv2.COLORMAP_JET)
-    heatmap_rgb = cv2.cvtColor(heatmap_bgr, cv2.COLOR_BGR2RGB)
+    cam_resized = cv2.resize(cam_unit, (w_img, h_img), interpolation=cv2.INTER_CUBIC)
+    # Smooth so the low-resolution feature map doesn't show as 12x12 blocks
+    cam_resized = cv2.GaussianBlur(cam_resized, (0, 0), sigmaX=max(w_img, h_img) / 80)
+    cam_resized = np.clip(cam_resized, 0.0, 1.0)
 
-    # Blend: alpha on heatmap, 1-alpha on base image
-    blended = cv2.addWeighted(heatmap_rgb, alpha, base_rgb, 1 - alpha, 0)
-    return blended
+    cam_uint8 = (cam_resized * 255).astype(np.uint8)
+    heatmap_bgr = cv2.applyColorMap(cam_uint8, cv2.COLORMAP_TURBO)
+    heatmap_rgb = cv2.cvtColor(heatmap_bgr, cv2.COLOR_BGR2RGB).astype(np.float32)
+
+    # Soft threshold: only blend where the model actually attended.
+    weight = np.clip(
+        (cam_resized - attention_threshold) / (1.0 - attention_threshold),
+        0.0, 1.0,
+    ) * max_alpha
+    weight = weight[..., None]  # (H, W, 1) for broadcasting
+
+    base_f = base_rgb.astype(np.float32)
+    blended = base_f * (1.0 - weight) + heatmap_rgb * weight
+    return np.clip(blended, 0, 255).astype(np.uint8)
 
 
 def _encode_png_b64(img_rgb: np.ndarray) -> str:
@@ -199,6 +228,9 @@ def predict_bytes(image_bytes: bytes,
 
     pre_rgb = _ben_graham(img_bgr)  # (H, W, 3) uint8 RGB after preprocessing
     x = _infer_tf(Image.fromarray(pre_rgb)).unsqueeze(0).to(DEVICE)
+    # Original-looking crop (no Ben-Graham contrast surgery) for the heatmap
+    # base layer — doctors should see a recognizable retina, not a sci-fi image.
+    overlay_base = _cropped_rgb_for_overlay(img_bgr) if with_heatmap else None
 
     # Hook capture for Grad-CAM. We always run with grad enabled when a
     # heatmap is requested; otherwise we keep the cheap no-grad path.
@@ -245,7 +277,7 @@ def predict_bytes(image_bytes: bytes,
     finally:
         handle.remove()
 
-    overlay_rgb = _gradcam_overlay(feats, grads, pre_rgb)
+    overlay_rgb = _gradcam_overlay(feats, grads, overlay_base if overlay_base is not None else pre_rgb)
     heatmap_b64 = _encode_png_b64(overlay_rgb)
 
     return {
