@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Diabetic Retinopathy Detection and Stage Classification (RetinaAI)",
+    "name": "RetinaPilot",
     "slug": "retinaai",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -43,8 +43,8 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "Allow Diabetic Retinopathy Detection and Stage Classification (RetinaAI) to access your photos for uploading fundus images.",
-          "cameraPermission": "Allow Diabetic Retinopathy Detection and Stage Classification (RetinaAI) to use the camera to capture fundus images."
+          "photosPermission": "Allow RetinaPilot to access your photos for uploading fundus images.",
+          "cameraPermission": "Allow RetinaPilot to use the camera to capture fundus images."
         }
       ],
       "expo-secure-store",

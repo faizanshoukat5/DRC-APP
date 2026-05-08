@@ -1,14 +1,20 @@
-import React, { useRef, useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, KeyboardAvoidingView, Platform, TouchableWithoutFeedback, Keyboard, StatusBar as RNStatusBar, StyleSheet } from 'react-native';
+import React, { useState } from 'react';
+import {
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  Image,
+  Platform,
+  StatusBar as RNStatusBar,
+  StyleSheet,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Button } from '../components/ui/Button';
-import { useAuthContext } from '../contexts/AuthContext';
-import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
-import AppHeader from '../components/ui/AppHeader';
+import { Card, CardContent } from '../components/ui/Card';
 import { Ionicons } from '@expo/vector-icons';
-import { Input } from '../components/ui/Input';
 import type { RootStackParamList } from '../navigation/AppNavigator';
 import { useVideoPlayer, VideoView } from 'expo-video';
 
@@ -16,11 +22,6 @@ type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Landing'>;
 
 export default function LandingScreen() {
   const navigation = useNavigation<NavigationProp>();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [activeTab, setActiveTab] = useState<'signin' | 'signup'>('signin');
-  const { lastError, signInWithPassword, isLoading } = useAuthContext();
-  const [localError, setLocalError] = useState<string | null>(null);
   const [showIntro, setShowIntro] = useState(true);
   const videoSource = require('../../assets/eye-opening.mp4');
   const player = useVideoPlayer(videoSource, (p) => {
@@ -28,221 +29,207 @@ export default function LandingScreen() {
     p.play();
   });
 
-  // Listen for playback end to dismiss the intro
   React.useEffect(() => {
     const subscription = player.addListener('playToEnd', () => {
       setShowIntro(false);
     });
     return () => subscription.remove();
   }, [player]);
-  // Device-aware keyboard offset: iOS needs a larger offset for the header + notch,
-  // Android can use the StatusBar height plus a small buffer.
-  const keyboardVerticalOffset = Platform.OS === 'ios' ? 90 : (RNStatusBar.currentHeight ?? 0) + 20;
 
   return (
     <SafeAreaView className="flex-1 bg-background">
       {showIntro && (
         <View style={styles.introOverlay}>
-          <VideoView
-            player={player}
-            style={styles.introVideo}
-            nativeControls={false}
-          />
+          <VideoView player={player} style={styles.introVideo} nativeControls={false} />
           <TouchableOpacity onPress={() => setShowIntro(false)} style={styles.skipButton}>
             <Text style={styles.skipText}>Skip</Text>
           </TouchableOpacity>
           <View style={styles.introCaption}>
-            <Text style={styles.introTitle}>RetinaAI</Text>
-            <Text style={styles.introSubtitle}>Diabetic Retinopathy Detection</Text>
+            <Text style={styles.introTitle}>RetinaPilot</Text>
+            <Text style={styles.introSubtitle}>Your retinal screening copilot</Text>
           </View>
         </View>
       )}
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }} keyboardVerticalOffset={keyboardVerticalOffset}>
-        <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
-          <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ flexGrow: 1, paddingBottom: 8 }}>
-            {/* Header */}
-            <AppHeader
-              title="RetinaAI"
-              subtitle="Diabetic Retinopathy Detection and Stage Classification"
-              roleTag="WELCOME"
-              transition="slide"
+
+      <ScrollView
+        contentContainerStyle={{ flexGrow: 1, paddingBottom: 32 }}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Brand Hero */}
+        <View className="px-6 pt-8 pb-6 items-center">
+          <View
+            style={styles.logoBubble}
+            className="bg-primary/10 items-center justify-center mb-4"
+          >
+            <Image
+              source={require('../../assets/icon.png')}
+              style={styles.logoImage}
             />
+          </View>
+          <Text className="text-3xl font-bold text-foreground tracking-tight">RetinaPilot</Text>
+          <Text className="text-sm text-muted-foreground mt-1 text-center">
+            AI-guided diabetic retinopathy screening
+          </Text>
+        </View>
 
-            {/* Hero */}
-            <View className="px-4 mt-4">
-              <Card className="rounded-2xl p-4">
-                <CardHeader>
-                  <Text className="text-sm text-muted-foreground" numberOfLines={2}>
-                    Diabetic Retinopathy Detection and Stage Classification (RetinaAI)
-                  </Text>
-                  <CardTitle>Diabetic Retinopathy, detected in seconds.</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <Text className="text-sm text-muted-foreground mb-3">Upload fundus images captured in-clinic or on your fundus camera; our ML model returns DR severity, confidence, and explainable heatmaps, and every report stays synced for patients and doctors.</Text>
+        {/* Pitch */}
+        <View className="px-4">
+          <Card className="rounded-2xl border-0 bg-gradient-to-br from-sky-50 to-blue-50">
+            <CardContent className="py-6 px-5">
+              <Text className="text-2xl font-bold text-slate-900 leading-tight">
+                Diabetic retinopathy,{'\n'}detected in seconds.
+              </Text>
+              <Text className="text-sm text-slate-600 mt-3 leading-relaxed">
+                Upload a retinal fundus image and get DR severity, calibrated confidence,
+                and an AI heatmap showing exactly what the model focused on.
+              </Text>
 
-                  <View className="flex-row gap-2">
-                    <Badge label="DR grade + heatmaps" />
-                    <Badge label="< 45 sec" />
-                    <Badge label="Fundus uploads" />
-                  </View>
-                </CardContent>
-              </Card>
-            </View>
+              <View className="flex-row flex-wrap mt-4 -mx-1">
+                <Pill label="5-class grading" />
+                <Pill label="Grad-CAM heatmap" />
+                <Pill label="< 45 sec" />
+              </View>
+            </CardContent>
+          </Card>
+        </View>
 
-            {/* Highlights */}
-            <View className="px-4 mt-4 space-y-3">
-              <SmallInfo icon="flash" title="Upload to AI" description="You upload fundus images; our ML model returns DR severity, confidence, and heatmaps." />
-              <SmallInfo icon="people" title="Clinician-first" description="Explainable outputs doctors can trust, with clear severity and confidence." />
-              <SmallInfo icon="cloud" title="Always synced" description="Secure storage for images and reports, accessible by patients and assigned doctors." />
-            </View>
+        {/* Primary CTAs */}
+        <View className="px-4 mt-6">
+          <Button
+            size="lg"
+            onPress={() => navigation.navigate('SignUp')}
+            className="w-full rounded-xl"
+          >
+            Get started
+          </Button>
+          <TouchableOpacity
+            onPress={() => navigation.navigate('SignIn')}
+            className="mt-3 py-3"
+          >
+            <Text className="text-center text-sm font-medium text-primary">
+              I already have an account →
+            </Text>
+          </TouchableOpacity>
+        </View>
 
-            {/* Patient & Doctor cards */}
-            <View className="px-4 mt-4 space-y-3">
-              <Card className="p-4">
-                <CardHeader>
-                  <Text className="text-xs text-muted-foreground">FOR PATIENTS</Text>
-                </CardHeader>
-                <CardContent>
-                  <Text className="text-lg font-semibold text-foreground">Simple, guided flow</Text>
-                  <View className="mt-3">
-                    <Text className="text-sm text-muted-foreground">1. Create an account and pick your approved doctor.</Text>
-                    <Text className="text-sm text-muted-foreground">2. Upload or view fundus reports shared by your doctor.</Text>
-                    <Text className="text-sm text-muted-foreground">3. Track severity, AI confidence, and download PDFs anytime.</Text>
-                  </View>
-                </CardContent>
-              </Card>
+        {/* What you get */}
+        <View className="px-4 mt-8">
+          <Text className="text-xs font-semibold text-muted-foreground tracking-wider mb-3 uppercase">
+            What you get
+          </Text>
+          <FeatureRow
+            icon="flash"
+            title="Instant analysis"
+            description="EfficientNet-B4 returns severity, confidence, and per-class probabilities."
+          />
+          <FeatureRow
+            icon="eye"
+            title="Explainable AI"
+            description="Grad-CAM heatmaps show exactly which retinal regions drove the diagnosis."
+          />
+          <FeatureRow
+            icon="cloud-done"
+            title="Always synced"
+            description="Reports stay accessible to patients and assigned doctors anywhere."
+          />
+        </View>
 
-              <Card className="p-4">
-                <CardHeader>
-                  <Text className="text-xs text-muted-foreground">FOR DOCTORS</Text>
-                </CardHeader>
-                <CardContent>
-                  <Text className="text-lg font-semibold text-foreground">Built for clinics</Text>
-                  <View className="mt-3">
-                    <Text className="text-sm text-muted-foreground">1. Get approved, then see only your assigned patients.</Text>
-                    <Text className="text-sm text-muted-foreground">2. Upload fundus images; the model returns DR severity and heatmaps.</Text>
-                    <Text className="text-sm text-muted-foreground">3. Share results instantly; patients get notified and can download.</Text>
-                  </View>
-                </CardContent>
-              </Card>
-            </View>
+        {/* Role explainers */}
+        <View className="px-4 mt-8">
+          <Text className="text-xs font-semibold text-muted-foreground tracking-wider mb-3 uppercase">
+            Built for
+          </Text>
 
-            {/* FAQ Link */}
-            <View className="px-4 mt-4">
-              <TouchableOpacity
-                onPress={() => navigation.navigate('FAQ')}
-                className="flex-row items-center justify-between p-4 rounded-xl bg-muted/30"
-              >
-                <View className="flex-row items-center">
-                  <Ionicons name="help-circle-outline" size={24} color="#0ea5e9" />
-                  <Text className="ml-3 text-base font-medium text-foreground">Frequently Asked Questions</Text>
+          <Card className="mb-3">
+            <CardContent className="py-4 px-4">
+              <View className="flex-row items-start">
+                <View className="h-10 w-10 rounded-lg bg-blue-50 items-center justify-center">
+                  <Ionicons name="person" size={20} color="#0ea5e9" />
                 </View>
-                <Ionicons name="chevron-forward" size={20} color="#6b7280" />
-              </TouchableOpacity>
+                <View className="ml-3 flex-1">
+                  <Text className="font-semibold text-foreground">Patients</Text>
+                  <Text className="text-sm text-muted-foreground mt-1">
+                    Pick an approved doctor, view your screening reports, and track results over time.
+                  </Text>
+                </View>
+              </View>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="py-4 px-4">
+              <View className="flex-row items-start">
+                <View className="h-10 w-10 rounded-lg bg-emerald-50 items-center justify-center">
+                  <Ionicons name="medical" size={20} color="#10b981" />
+                </View>
+                <View className="ml-3 flex-1">
+                  <Text className="font-semibold text-foreground">Doctors</Text>
+                  <Text className="text-sm text-muted-foreground mt-1">
+                    Upload fundus images for assigned patients, review AI grading, add clinical notes.
+                  </Text>
+                </View>
+              </View>
+            </CardContent>
+          </Card>
+        </View>
+
+        {/* FAQ */}
+        <View className="px-4 mt-6">
+          <TouchableOpacity
+            onPress={() => navigation.navigate('FAQ')}
+            className="flex-row items-center justify-between py-3 px-4 rounded-xl bg-muted/40"
+          >
+            <View className="flex-row items-center">
+              <Ionicons name="help-circle-outline" size={20} color="#64748b" />
+              <Text className="ml-2 text-sm font-medium text-foreground">
+                Frequently Asked Questions
+              </Text>
             </View>
+            <Ionicons name="chevron-forward" size={18} color="#94a3b8" />
+          </TouchableOpacity>
+        </View>
 
-            {/* Sign-in panel */}
-            <View className="px-4 mt-4">
-              <Card className="p-4">
-                <CardHeader>
-                  <Text className="text-xs text-muted-foreground">ACCESS</Text>
-                </CardHeader>
-                <CardContent>
-                  <View className="flex-row items-center justify-between mb-3">
-                    <Text className="text-lg font-semibold text-foreground">{activeTab === 'signin' ? 'Sign in' : 'Sign up'}</Text>
-                    <View className="flex-row items-center space-x-2">
-                      <Button
-                        size="sm"
-                        variant={activeTab === 'signin' ? 'default' : 'outline'}
-                        onPress={() => setActiveTab('signin')}
-                        className="rounded-full px-3"
-                      >
-                        Sign in
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant={activeTab === 'signup' ? 'default' : 'outline'}
-                        onPress={() => setActiveTab('signup')}
-                        className="rounded-full px-3"
-                      >
-                        Sign up
-                      </Button>
-                    </View>
-                  </View>
-
-                  {activeTab === 'signin' ? (
-                    <>
-                      <Input label="Email address" value={email} onChangeText={setEmail} placeholder="you@example.com" keyboardType="email-address" />
-                      <View className="mt-3" />
-                      <Input label="Password" value={password} onChangeText={setPassword} placeholder="********" secureTextEntry />
-
-                      {(localError || lastError) && (
-                        <Text className="text-sm text-red-500 mt-3">{localError || lastError}</Text>
-                      )}
-
-                      <View className="mt-4">
-                        <Button
-                          size="lg"
-                          variant="default"
-                          onPress={async () => {
-                            setLocalError(null);
-                            if (!email.trim() || !password.trim()) return setLocalError('Please enter email and password');
-                            try {
-                              await signInWithPassword(email.trim(), password);
-                            } catch (err: any) {
-                              setLocalError(err.message || 'Sign in failed');
-                            }
-                          }}
-                          isLoading={isLoading}
-                          className="w-full rounded-xl"
-                        >
-                          Sign in
-                        </Button>
-                      </View>
-
-                      <View className="mt-4 items-center">
-                        <Text className="text-sm text-muted-foreground">Don't have an account? <Text className="text-primary" onPress={() => setActiveTab('signup')}>Create one</Text></Text>
-                      </View>
-                    </>
-                  ) : (
-                    <>
-                      <Text className="text-sm text-muted-foreground mb-3">Create an account as a patient or doctor. Doctor accounts require admin approval.</Text>
-                      <View className="mt-2">
-                        <Button size="lg" variant="default" onPress={() => navigation.navigate('SignUp')} className="w-full rounded-xl">Create account</Button>
-                      </View>
-                    </>
-                  )}
-                </CardContent>
-              </Card>
-            </View>
-          </ScrollView>
-        </TouchableWithoutFeedback>
-      </KeyboardAvoidingView>
+        {/* Footer disclaimer */}
+        <View className="px-4 mt-8">
+          <Text className="text-xs text-center text-muted-foreground leading-relaxed">
+            RetinaPilot is a screening assistant. Results do not replace
+            clinical diagnosis by a qualified ophthalmologist.
+          </Text>
+        </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
 
-function Badge({ label }: { label: string }) {
+function Pill({ label }: { label: string }) {
   return (
-    <View className="rounded-full bg-muted/30 px-3 py-2">
-      <Text className="text-xs text-foreground">{label}</Text>
+    <View className="rounded-full bg-white/60 border border-sky-200 px-3 py-1.5 mr-2 mb-2">
+      <Text className="text-xs font-medium text-sky-700">{label}</Text>
     </View>
   );
 }
 
-function SmallInfo({ icon, title, description }: { icon: string; title: string; description: string }) {
+function FeatureRow({
+  icon,
+  title,
+  description,
+}: {
+  icon: keyof typeof import('@expo/vector-icons').Ionicons.glyphMap;
+  title: string;
+  description: string;
+}) {
   return (
-    <Card className="p-3">
-      <View className="flex-row items-start gap-3">
-        <View className="w-10 h-10 rounded-lg bg-primary/10 items-center justify-center">
-          <Ionicons name={icon as any} size={20} color="#0ea5e9" />
-        </View>
-        <View className="flex-1">
-          <Text className="font-semibold text-foreground">{title}</Text>
-          <Text className="text-sm text-muted-foreground mt-1">{description}</Text>
-        </View>
+    <View className="flex-row items-start mb-4">
+      <View className="h-10 w-10 rounded-lg bg-primary/10 items-center justify-center">
+        <Ionicons name={icon} size={20} color="#0ea5e9" />
       </View>
-    </Card>
+      <View className="ml-3 flex-1">
+        <Text className="font-semibold text-foreground">{title}</Text>
+        <Text className="text-sm text-muted-foreground mt-0.5 leading-relaxed">
+          {description}
+        </Text>
+      </View>
+    </View>
   );
 }
 
@@ -258,7 +245,7 @@ const styles = StyleSheet.create({
   },
   skipButton: {
     position: 'absolute',
-    top: Platform.OS === 'ios' ? 60 : 30,
+    top: Platform.OS === 'ios' ? 60 : (RNStatusBar.currentHeight ?? 0) + 20,
     right: 20,
     paddingHorizontal: 14,
     paddingVertical: 8,
@@ -278,12 +265,23 @@ const styles = StyleSheet.create({
   },
   introTitle: {
     color: '#ffffff',
-    fontSize: 28,
+    fontSize: 32,
     fontWeight: '700',
+    letterSpacing: -0.5,
   },
   introSubtitle: {
-    color: '#e2e8f0',
+    color: '#cbd5e1',
     fontSize: 14,
     marginTop: 6,
+  },
+  logoBubble: {
+    width: 80,
+    height: 80,
+    borderRadius: 24,
+  },
+  logoImage: {
+    width: 56,
+    height: 56,
+    borderRadius: 14,
   },
 });

@@ -1,9 +1,9 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback } from 'react'; 
 import {
   View,
   Text,
   RefreshControl,
-  ActivityIndicator,
+  ActivityIndicator,  
   FlatList,
   type ListRenderItem,
 } from 'react-native';

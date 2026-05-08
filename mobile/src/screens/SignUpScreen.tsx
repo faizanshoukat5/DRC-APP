@@ -4,6 +4,8 @@ import {
   Text,
   Platform,
   TouchableOpacity,
+  Image,
+  StyleSheet,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
@@ -12,7 +14,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useAuthContext } from '../contexts/AuthContext';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/Card';
+import { Card, CardContent } from '../components/ui/Card';
 import { Ionicons } from '@expo/vector-icons';
 import type { RootStackParamList } from '../navigation/AppNavigator';
 import type { UserRole, SignUpPayload } from '../hooks/useAuth';
@@ -83,98 +85,78 @@ export default function SignUpScreen() {
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
         extraScrollHeight={Platform.OS === 'ios' ? 24 : 120}
-        contentContainerStyle={{ paddingBottom: 40 }}
-        style={{ flex: 1, paddingHorizontal: 16, paddingVertical: 16 }}
+        contentContainerStyle={{ paddingBottom: 40, paddingHorizontal: 24 }}
+        style={{ flex: 1 }}
+        showsVerticalScrollIndicator={false}
       >
-        {/* Back Button */}
+        {/* Back button */}
         <TouchableOpacity
           onPress={() => navigation.goBack()}
-          className="mb-4"
+          className="self-start py-2 -ml-1 mt-2"
+          hitSlop={8}
         >
-          <Ionicons name="arrow-back" size={24} color="#6b7280" />
+          <Ionicons name="arrow-back" size={24} color="#475569" />
         </TouchableOpacity>
 
-        {/* Header */}
-        <View className="mb-4 px-2">
-          <View className="flex-row items-start justify-between">
-            <View>
-              <Text className="text-xs font-semibold text-muted-foreground">ACCESS</Text>
-              <Text className="text-2xl font-bold text-foreground">Create account</Text>
-            </View>
-
-            <View className="flex-row items-center space-x-2">
-              <TouchableOpacity onPress={() => navigation.navigate('SignIn')} className="rounded-full px-3 py-1 border border-border">
-                <Text className="text-sm text-muted-foreground">Sign in</Text>
-              </TouchableOpacity>
-              <TouchableOpacity className="rounded-full px-3 py-1 border border-primary bg-primary/10">
-                <Text className="text-sm font-medium text-primary">Sign up</Text>
-              </TouchableOpacity>
-            </View>
+        {/* Brand */}
+        <View className="items-center mt-4 mb-6">
+          <View
+            style={styles.logoBubble}
+            className="bg-primary/10 items-center justify-center mb-3"
+          >
+            <Image
+              source={require('../../assets/icon.png')}
+              style={styles.logoImage}
+            />
           </View>
+          <Text className="text-2xl font-bold text-foreground tracking-tight">
+            Create your account
+          </Text>
+          <Text className="text-sm text-muted-foreground mt-1 text-center">
+            Join RetinaPilot — AI-guided retinal screening
+          </Text>
         </View>
 
-        {/* Role Selection */}
-        <View className="mb-4">
-          <Text className="mb-2 text-sm font-medium text-foreground">I am a...</Text>
-          <View className="flex-row space-x-3">
-            <TouchableOpacity
+        {/* Role segmented control */}
+        <View className="mb-5">
+          <Text className="mb-2 text-sm font-medium text-foreground">I'm signing up as a</Text>
+          <View className="flex-row rounded-xl bg-muted/40 p-1">
+            <RoleTab
+              icon="person"
+              label="Patient"
+              active={role === 'patient'}
               onPress={() => setRole('patient')}
-              className={`mr-2 flex-1 items-center rounded-lg border-2 p-4 ${role === 'patient' ? 'border-primary bg-primary/10' : 'border-border'
-                }`}
-            >
-              <Ionicons
-                name="person"
-                size={24}
-                color={role === 'patient' ? '#0ea5e9' : '#6b7280'}
-              />
-              <Text
-                className={`mt-1 font-medium ${role === 'patient' ? 'text-primary' : 'text-muted-foreground'
-                  }`}
-              >
-                Patient
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
+            />
+            <RoleTab
+              icon="medical"
+              label="Doctor"
+              active={role === 'doctor'}
               onPress={() => setRole('doctor')}
-              className={`flex-1 items-center rounded-lg border-2 p-4 ${role === 'doctor' ? 'border-primary bg-primary/10' : 'border-border'
-                }`}
-            >
-              <Ionicons
-                name="medical"
-                size={24}
-                color={role === 'doctor' ? '#0ea5e9' : '#6b7280'}
-              />
-              <Text
-                className={`mt-1 font-medium ${role === 'doctor' ? 'text-primary' : 'text-muted-foreground'
-                  }`}
-              >
-                Doctor
-              </Text>
-            </TouchableOpacity>
+            />
           </View>
+          {role === 'doctor' && (
+            <View className="mt-2 flex-row items-start rounded-lg bg-amber-50 p-3">
+              <Ionicons name="time-outline" size={16} color="#b45309" style={{ marginTop: 1 }} />
+              <Text className="ml-2 flex-1 text-xs text-amber-800">
+                Doctor accounts require admin approval before you can upload scans.
+              </Text>
+            </View>
+          )}
         </View>
 
         {/* Form */}
         <Card className="rounded-2xl">
-          <CardHeader>
-            <CardTitle>Your Information</CardTitle>
-            <CardDescription>
-              {role === 'doctor'
-                ? 'Doctor accounts require admin approval'
-                : 'Fill in your details to get started'}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
+          <CardContent className="py-5">
             {error && (
-              <View className="mb-4 rounded-lg bg-red-50 p-3">
-                <Text className="text-sm text-red-600">{error}</Text>
+              <View className="mb-4 flex-row items-start rounded-lg bg-red-50 p-3">
+                <Ionicons name="alert-circle" size={18} color="#dc2626" />
+                <Text className="ml-2 flex-1 text-sm text-red-700">{error}</Text>
               </View>
             )}
 
             <Input
-              label="Full Name *"
-              placeholder="John Doe"
+              label="Full name *"
+              placeholder="Jane Doe"
               value={name}
               onChangeText={setName}
               autoComplete="name"
@@ -205,7 +187,7 @@ export default function SignUpScreen() {
             {role === 'doctor' && (
               <>
                 <Input
-                  label="License Number *"
+                  label="License number *"
                   placeholder="MED-12345"
                   value={licenseNumber}
                   onChangeText={setLicenseNumber}
@@ -225,7 +207,7 @@ export default function SignUpScreen() {
             <View className="relative mb-3">
               <Input
                 label="Password *"
-                placeholder="••••••••"
+                placeholder="At least 6 characters"
                 value={password}
                 onChangeText={setPassword}
                 secureTextEntry={!showPassword}
@@ -234,6 +216,7 @@ export default function SignUpScreen() {
               <TouchableOpacity
                 onPress={() => setShowPassword(!showPassword)}
                 className="absolute right-3 top-9"
+                hitSlop={8}
               >
                 <Ionicons
                   name={showPassword ? 'eye-off' : 'eye'}
@@ -244,8 +227,8 @@ export default function SignUpScreen() {
             </View>
 
             <Input
-              label="Confirm Password *"
-              placeholder="••••••••"
+              label="Confirm password *"
+              placeholder="Re-enter password"
               value={confirmPassword}
               onChangeText={setConfirmPassword}
               secureTextEntry={!showPassword}
@@ -264,14 +247,66 @@ export default function SignUpScreen() {
           </CardContent>
         </Card>
 
-        {/* Sign In Link */}
-        <View className="mb-8 mt-6 flex-row items-center justify-center">
-          <Text className="text-muted-foreground">Already have an account? </Text>
-          <TouchableOpacity onPress={() => navigation.navigate('SignIn')}>
-            <Text className="font-medium text-primary">Sign In</Text>
+        {/* Sign-in link */}
+        <View className="mt-6 mb-4 flex-row items-center justify-center">
+          <Text className="text-sm text-muted-foreground">Already have an account?{' '}</Text>
+          <TouchableOpacity onPress={() => navigation.navigate('SignIn')} hitSlop={6}>
+            <Text className="text-sm font-semibold text-primary">Sign in</Text>
           </TouchableOpacity>
         </View>
       </KeyboardAwareScrollView>
     </SafeAreaView>
   );
 }
+
+function RoleTab({
+  icon,
+  label,
+  active,
+  onPress,
+}: {
+  icon: keyof typeof import('@expo/vector-icons').Ionicons.glyphMap;
+  label: string;
+  active: boolean;
+  onPress: () => void;
+}) {
+  return (
+    <TouchableOpacity
+      onPress={onPress}
+      className={`flex-1 flex-row items-center justify-center rounded-lg py-3 ${
+        active ? 'bg-white shadow-sm' : ''
+      }`}
+      style={
+        active
+          ? {
+              shadowColor: '#0f172a',
+              shadowOffset: { width: 0, height: 1 },
+              shadowOpacity: 0.06,
+              shadowRadius: 3,
+              elevation: 1,
+            }
+          : undefined
+      }
+    >
+      <Ionicons name={icon} size={18} color={active ? '#0ea5e9' : '#64748b'} />
+      <Text
+        className={`ml-2 text-sm font-medium ${active ? 'text-primary' : 'text-muted-foreground'}`}
+      >
+        {label}
+      </Text>
+    </TouchableOpacity>
+  );
+}
+
+const styles = StyleSheet.create({
+  logoBubble: {
+    width: 72,
+    height: 72,
+    borderRadius: 22,
+  },
+  logoImage: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+  },
+});

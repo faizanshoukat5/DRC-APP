@@ -13,8 +13,8 @@ interface AppHeaderProps {
 }
 
 export default function AppHeader({
-  title = 'RetinaAI',
-  subtitle = 'Diabetic Retinopathy Detection and Stage Classification',
+  title = 'RetinaPilot',
+  subtitle = 'AI-guided retinal screening',
   roleTag,
   transition = 'slide',
   delay = 0,

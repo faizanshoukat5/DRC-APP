@@ -9,6 +9,8 @@ import {
   Keyboard,
   TouchableWithoutFeedback,
   StatusBar as RNStatusBar,
+  Image,
+  StyleSheet,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -16,7 +18,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useAuthContext } from '../contexts/AuthContext';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/Card';
+import { Card, CardContent } from '../components/ui/Card';
 import { Ionicons } from '@expo/vector-icons';
 import type { RootStackParamList } from '../navigation/AppNavigator';
 
@@ -58,47 +60,46 @@ export default function SignInScreen() {
         <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
           <ScrollView
             style={{ flex: 1 }}
-            contentContainerStyle={{ flexGrow: 1, paddingHorizontal: 16, paddingVertical: 32 }}
+            contentContainerStyle={{ flexGrow: 1, paddingHorizontal: 24, paddingVertical: 16 }}
             keyboardShouldPersistTaps="handled"
             keyboardDismissMode="on-drag"
+            showsVerticalScrollIndicator={false}
           >
-            {/* Back Button */}
+            {/* Back button */}
             <TouchableOpacity
               onPress={() => navigation.goBack()}
-              className="absolute left-6 top-4"
+              className="self-start py-2 -ml-1"
+              hitSlop={8}
             >
-              <Ionicons name="arrow-back" size={24} color="#6b7280" />
+              <Ionicons name="arrow-back" size={24} color="#475569" />
             </TouchableOpacity>
 
-            {/* Header */}
-            <View className="mb-4 px-2">
-              <View className="flex-row items-start justify-between">
-                <View>
-                  <Text className="text-xs font-semibold text-muted-foreground">ACCESS</Text>
-                  <Text className="text-2xl font-bold text-foreground">Sign in</Text>
-                </View>
-
-                <View className="flex-row items-center space-x-2">
-                  <TouchableOpacity className="rounded-full px-3 py-1 border border-primary bg-primary/10">
-                    <Text className="text-sm font-medium text-primary">Sign in</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity onPress={() => navigation.navigate('SignUp')} className="rounded-full px-3 py-1 border border-border">
-                    <Text className="text-sm text-muted-foreground">Sign up</Text>
-                  </TouchableOpacity>
-                </View>
+            {/* Brand */}
+            <View className="items-center mt-6 mb-8">
+              <View
+                style={styles.logoBubble}
+                className="bg-primary/10 items-center justify-center mb-3"
+              >
+                <Image
+                  source={require('../../assets/icon.png')}
+                  style={styles.logoImage}
+                />
               </View>
+              <Text className="text-2xl font-bold text-foreground tracking-tight">
+                Welcome back
+              </Text>
+              <Text className="text-sm text-muted-foreground mt-1">
+                Sign in to continue to RetinaPilot
+              </Text>
             </View>
 
             {/* Form */}
             <Card className="rounded-2xl">
-              <CardHeader>
-                <CardTitle>Sign In</CardTitle>
-                <CardDescription>Enter your credentials to continue</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="py-5">
                 {error && (
-                  <View className="mb-4 rounded-lg bg-red-50 p-3">
-                    <Text className="text-sm text-red-600">{error}</Text>
+                  <View className="mb-4 flex-row items-start rounded-lg bg-red-50 p-3">
+                    <Ionicons name="alert-circle" size={18} color="#dc2626" />
+                    <Text className="ml-2 flex-1 text-sm text-red-700">{error}</Text>
                   </View>
                 )}
 
@@ -113,7 +114,7 @@ export default function SignInScreen() {
                   containerClassName="mb-4"
                 />
 
-                <View className="mb-4">
+                <View className="mb-2">
                   <Input
                     label="Password"
                     placeholder="••••••••"
@@ -125,6 +126,7 @@ export default function SignInScreen() {
                   <TouchableOpacity
                     onPress={() => setShowPassword(!showPassword)}
                     className="absolute right-3 top-9"
+                    hitSlop={8}
                   >
                     <Ionicons
                       name={showPassword ? 'eye-off' : 'eye'}
@@ -134,31 +136,33 @@ export default function SignInScreen() {
                   </TouchableOpacity>
                 </View>
 
+                <TouchableOpacity
+                  onPress={() => navigation.navigate('ForgotPassword')}
+                  className="self-end py-2"
+                  hitSlop={8}
+                >
+                  <Text className="text-sm font-medium text-primary">Forgot password?</Text>
+                </TouchableOpacity>
+
                 <Button
                   size="lg"
                   variant="default"
                   onPress={handleSignIn}
                   isLoading={isLoading}
-                  className="w-full rounded-xl"
+                  className="mt-2 w-full rounded-xl"
                 >
                   Sign in
                 </Button>
-
-                <TouchableOpacity
-                  onPress={() => navigation.navigate('ForgotPassword')}
-                  className="mt-3 self-center"
-                  hitSlop={8}
-                >
-                  <Text className="text-sm font-medium text-primary">Forgot password?</Text>
-                </TouchableOpacity>
               </CardContent>
             </Card>
 
-            {/* Sign Up Link */}
+            {/* Sign-up link */}
             <View className="mt-6 flex-row items-center justify-center">
-              <Text className="text-muted-foreground">Don't have an account? </Text>
-              <TouchableOpacity onPress={() => navigation.navigate('SignUp')}>
-                <Text className="font-medium text-primary">Sign Up</Text>
+              <Text className="text-sm text-muted-foreground">
+                New to RetinaPilot?{' '}
+              </Text>
+              <TouchableOpacity onPress={() => navigation.navigate('SignUp')} hitSlop={6}>
+                <Text className="text-sm font-semibold text-primary">Create account</Text>
               </TouchableOpacity>
             </View>
           </ScrollView>
@@ -167,3 +171,16 @@ export default function SignInScreen() {
     </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  logoBubble: {
+    width: 72,
+    height: 72,
+    borderRadius: 22,
+  },
+  logoImage: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+  },
+});
