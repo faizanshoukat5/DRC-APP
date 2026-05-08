@@ -8,6 +8,7 @@ type AuthContextValue = {
   lastError: string | null;
   role: UserRole | null;
   doctorStatus: DoctorStatus | null;
+  isPasswordRecovery: boolean;
   signInWithPassword: (email: string, password: string) => Promise<any>;
   signUpWithPassword: (payload: SignUpPayload) => Promise<any>;
   signOut: () => Promise<void>;

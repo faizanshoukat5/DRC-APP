@@ -144,6 +144,30 @@ export default function SelectDoctorScreen() {
           </View>
         )}
 
+        {/* Welcome banner for patients who haven't picked a doctor yet */}
+        {!currentDoctor && (
+          <View className="mt-6 px-4">
+            <Card className="border-0 bg-sky-50">
+              <CardContent className="py-4">
+                <View className="flex-row items-start">
+                  <View className="h-10 w-10 rounded-full bg-sky-100 items-center justify-center">
+                    <Ionicons name="hand-right" size={20} color="#0284c7" />
+                  </View>
+                  <View className="ml-3 flex-1">
+                    <Text className="font-semibold text-sky-900">
+                      Welcome to RetinaPilot
+                    </Text>
+                    <Text className="text-sm text-sky-800 mt-1 leading-relaxed">
+                      Choose an approved doctor below. They'll upload and review your
+                      retinal scans, and your reports will appear in your dashboard.
+                    </Text>
+                  </View>
+                </View>
+              </CardContent>
+            </Card>
+          </View>
+        )}
+
         {/* Available Doctors */}
         <View className="mt-6 px-4">
           <Text className="mb-3 text-lg font-semibold text-foreground">

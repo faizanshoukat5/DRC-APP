@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import * as Linking from 'expo-linking';
 import { supabase } from '../lib/supabaseClient';
 import type { User } from '@supabase/supabase-js';
 
@@ -41,6 +42,10 @@ type AuthState = {
   lastError: string | null;
   role: UserRole | null;
   doctorStatus: DoctorStatus | null;
+  /** True when Supabase fired PASSWORD_RECOVERY (user came from a reset email link).
+   *  Stays true until updatePassword() succeeds, so the navigator can show the
+   *  reset screen even though there is technically a recovery session. */
+  isPasswordRecovery: boolean;
 };
 
 async function fetchProfile(userId: string): Promise<AuthProfile | null> {
@@ -76,6 +81,7 @@ export function useAuth() {
   const [user, setUser] = useState<AuthProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [lastError, setLastError] = useState<string | null>(null);
+  const [isPasswordRecovery, setIsPasswordRecovery] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -122,7 +128,15 @@ export function useAuth() {
 
     const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!isMounted) return;
-      
+
+      // User clicked the password-reset email link → Supabase exchanged the
+      // recovery token for a short-lived session and fired this event. We flip
+      // a flag the navigator reads to show the ResetPassword screen instead of
+      // the main app.
+      if (event === 'PASSWORD_RECOVERY') {
+        setIsPasswordRecovery(true);
+      }
+
       // Handle token refresh errors
       if (event === 'TOKEN_REFRESHED' && !session) {
         await supabase.auth.signOut();
@@ -130,7 +144,7 @@ export function useAuth() {
         setIsLoading(false);
         return;
       }
-      
+
       if (!session?.user) {
         setUser(null);
         setIsLoading(false);
@@ -253,7 +267,11 @@ export function useAuth() {
   const requestPasswordReset = useCallback(async (email: string) => {
     const trimmed = email.trim();
     if (!trimmed) throw new Error('Please enter your email address.');
-    const { error } = await supabase.auth.resetPasswordForEmail(trimmed);
+    // Linking.createURL builds an environment-aware redirect:
+    //   - `retinapilot://reset-password` for installed builds (uses app.json scheme)
+    //   - `exp://<lan>:8081/--/reset-password` in Expo Go dev
+    const redirectTo = Linking.createURL('reset-password');
+    const { error } = await supabase.auth.resetPasswordForEmail(trimmed, { redirectTo });
     if (error) throw new Error(error.message);
   }, []);
 
@@ -263,6 +281,8 @@ export function useAuth() {
     }
     const { error } = await supabase.auth.updateUser({ password: newPassword });
     if (error) throw new Error(error.message);
+    // Recovery flow is over once the password is set.
+    setIsPasswordRecovery(false);
   }, []);
 
   const state: AuthState = useMemo(() => ({
@@ -272,7 +292,8 @@ export function useAuth() {
     lastError,
     role: user?.role ?? null,
     doctorStatus: user?.status ?? null,
-  }), [user, isLoading, lastError]);
+    isPasswordRecovery,
+  }), [user, isLoading, lastError, isPasswordRecovery]);
 
   return {
     ...state,

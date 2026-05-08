@@ -1,8 +1,10 @@
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
+import type { LinkingOptions } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { ActivityIndicator, View } from 'react-native';
+import * as Linking from 'expo-linking';
 import { useAuthContext } from '../contexts/AuthContext';
 import OfflineBanner from '../components/OfflineBanner';
 
@@ -11,6 +13,7 @@ import LandingScreen from '../screens/LandingScreen';
 import SignInScreen from '../screens/SignInScreen';
 import SignUpScreen from '../screens/SignUpScreen';
 import ForgotPasswordScreen from '../screens/ForgotPasswordScreen';
+import ResetPasswordScreen from '../screens/ResetPasswordScreen';
 import PatientDashboardScreen from '../screens/PatientDashboardScreen';
 import DoctorDashboardScreen from '../screens/DoctorDashboardScreen';
 import AdminDashboardScreen from '../screens/AdminDashboardScreen';
@@ -30,6 +33,7 @@ export type RootStackParamList = {
   SignIn: undefined;
   SignUp: undefined;
   ForgotPassword: undefined;
+  ResetPassword: undefined;
   MainTabs: undefined;
   Results: { scanId: string };
   Analysis: undefined;
@@ -37,6 +41,20 @@ export type RootStackParamList = {
   Settings: undefined;
   FAQ: undefined;
   PendingDoctor: undefined;
+};
+
+// Deep linking — when the user taps the password reset email, the OS opens
+// `retinapilot://reset-password` (or the Expo Go fallback in dev). React
+// Navigation's linking integration is mostly a noop here because the actual
+// session handover is handled by Supabase parsing the URL fragment; we just
+// need a prefix so the app foregrounds correctly.
+const linking: LinkingOptions<RootStackParamList> = {
+  prefixes: [Linking.createURL('/'), 'retinapilot://'],
+  config: {
+    screens: {
+      ResetPassword: 'reset-password',
+    },
+  },
 };
 
 export type MainTabParamList = {
@@ -166,7 +184,7 @@ function MainTabs() {
 }
 
 export default function AppNavigator() {
-  const { isLoading, isAuthenticated, role } = useAuthContext();
+  const { isLoading, isAuthenticated, role, isPasswordRecovery } = useAuthContext();
 
   if (isLoading) {
     return (
@@ -177,14 +195,18 @@ export default function AppNavigator() {
   }
 
   return (
-    <NavigationContainer>
+    <NavigationContainer linking={linking}>
       <OfflineBanner />
       <Stack.Navigator
         screenOptions={{
           headerShown: false,
         }}
       >
-        {!isAuthenticated ? (
+        {isPasswordRecovery ? (
+          // User opened a password-reset email — the only screen they should
+          // see until they finish setting a new password.
+          <Stack.Screen name="ResetPassword" component={ResetPasswordScreen} />
+        ) : !isAuthenticated ? (
           <>
             <Stack.Screen name="Landing" component={LandingScreen} />
             <Stack.Screen name="SignIn" component={SignInScreen} />
