@@ -35,10 +35,7 @@
         "android.permission.RECORD_AUDIO"
       ],
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false,
-      "runtimeVersion": {
-        "policy": "appVersion"
-      }
+      "predictiveBackGestureEnabled": false
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -62,6 +59,9 @@
     },
     "updates": {
       "url": "https://u.expo.dev/b565b17c-ad70-4067-ae12-6e4bd1cbfca1"
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
     }
   }
 }
