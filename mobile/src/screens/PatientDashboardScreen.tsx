@@ -12,6 +12,7 @@ import AppHeader from '../components/ui/AppHeader';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Image } from 'expo-image';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useAuthContext } from '../contexts/AuthContext';
 import { Button } from '../components/ui/Button';
 import { Card, CardContent } from '../components/ui/Card';
@@ -114,7 +115,7 @@ export default function PatientDashboardScreen() {
       {/* Doctor Card */}
       <View className="mt-6 px-4">
         {doctor ? (
-          <Card className="p-4 bg-gradient-to-r from-primary/10 to-blue-50 border-0">
+          <Card className="p-4 bg-sky-50 border-0">
             <View className="flex-row items-center justify-between">
               <View className="flex-row items-center gap-3">
                 <View className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center">
@@ -142,10 +143,10 @@ export default function PatientDashboardScreen() {
       </View>
 
       {/* Stats */}
-      <View className="mt-6 px-4 grid grid-cols-2 gap-3 flex-row">
-        <Card className="mr-3 flex-1 bg-gradient-to-br from-slate-50 to-slate-100 border-0">
+      <View className="mt-6 px-4 flex-row">
+        <Card className="mr-3 flex-1 bg-blue-50 border-0">
           <CardContent className="flex-row items-center py-4">
-            <View className="mr-3 h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center">
+            <View className="mr-3 h-10 w-10 rounded-full bg-blue-100 items-center justify-center">
               <Ionicons name="document-text" size={20} color="#0ea5e9" />
             </View>
             <View>
@@ -155,9 +156,9 @@ export default function PatientDashboardScreen() {
           </CardContent>
         </Card>
 
-        <Card className="flex-1 bg-gradient-to-br from-emerald-50 to-teal-50 border-0">
+        <Card className="flex-1 bg-emerald-50 border-0">
           <CardContent className="flex-row items-center py-4">
-            <View className="mr-3 h-10 w-10 rounded-full bg-emerald-100 flex items-center justify-center">
+            <View className="mr-3 h-10 w-10 rounded-full bg-emerald-100 items-center justify-center">
               <Ionicons name="heart" size={20} color="#22c55e" />
             </View>
             <View>
@@ -170,35 +171,55 @@ export default function PatientDashboardScreen() {
 
       {/* Latest Result Summary */}
       {latestScan && (
-        <Card className="mt-6 mx-6 overflow-hidden border-0 shadow-lg">
-          <View className="bg-gradient-to-r from-slate-900 to-slate-800 p-4">
+        <Card className="mt-6 mx-4 overflow-hidden border-0 shadow-lg">
+          <LinearGradient
+            colors={['#0f172a', '#1e293b']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={{ paddingHorizontal: 16, paddingVertical: 16 }}
+          >
             <View className="flex-row items-center justify-between mb-3">
-              <View className="flex-row items-center gap-2">
-                <Ionicons name="eye" size={18} color="#0ea5e9" />
-                <Text className="text-sm font-medium text-white">Latest Screening</Text>
+              <View className="flex-row items-center">
+                <Ionicons name="eye" size={18} color="#38bdf8" />
+                <Text className="ml-2 text-sm font-medium text-white">Latest Screening</Text>
               </View>
               <Badge variant={getSeverityBadgeVariant(latestScan.severity)}>
                 {latestScan.severity}
               </Badge>
             </View>
-            <Text className="text-xl font-bold text-white">{latestScan.diagnosis}</Text>
-            <View className="flex-row gap-4 mt-2">
-              <Text className="text-xs text-slate-300">{formatDate(latestScan.createdAt)}</Text>
-            </View>
-          </View>
+            <Text className="text-xl font-bold text-white" numberOfLines={1}>
+              {latestScan.diagnosis}
+            </Text>
+            <Text className="mt-1 text-xs text-slate-300">
+              {formatDate(latestScan.createdAt)}
+            </Text>
+          </LinearGradient>
           <View className="p-4 bg-white">
             <View className="flex-row items-center justify-between mb-3">
               <Text className="text-sm text-slate-600">AI Confidence</Text>
-              <Text className="text-sm font-semibold">{latestConfidence ?? '--'}%</Text>
+              <Text className="text-sm font-semibold text-foreground">
+                {latestConfidence ?? '--'}%
+              </Text>
             </View>
             <View className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
-              <View style={{ width: `${latestConfidence ?? 0}%` }} className="h-full bg-gradient-to-r from-primary to-blue-500 rounded-full" />
+              <LinearGradient
+                colors={['#0ea5e9', '#3b82f6']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={{ height: '100%', width: `${latestConfidence ?? 0}%`, borderRadius: 999 }}
+              />
             </View>
             <View className="flex-row gap-2 mt-4">
-              <Button className="flex-1" onPress={() => navigation.navigate('Results', { scanId: latestScan.id })}>
+              <Button
+                className="flex-1"
+                onPress={() => navigation.navigate('Results', { scanId: latestScan.id })}
+              >
                 View Details
               </Button>
-              <Button variant="outline" onPress={() => navigation.navigate('Results', { scanId: latestScan.id })}>
+              <Button
+                variant="outline"
+                onPress={() => navigation.navigate('Results', { scanId: latestScan.id })}
+              >
                 Download
               </Button>
             </View>
