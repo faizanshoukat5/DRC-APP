@@ -35,7 +35,10 @@
         "android.permission.RECORD_AUDIO"
       ],
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "runtimeVersion": {
+        "policy": "appVersion"
+      }
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -56,6 +59,9 @@
       "eas": {
         "projectId": "b565b17c-ad70-4067-ae12-6e4bd1cbfca1"
       }
+    },
+    "updates": {
+      "url": "https://u.expo.dev/b565b17c-ad70-4067-ae12-6e4bd1cbfca1"
     }
   }
 }
