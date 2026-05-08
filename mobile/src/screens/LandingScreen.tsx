@@ -5,8 +5,6 @@ import {
   ScrollView,
   TouchableOpacity,
   Image,
-  Platform,
-  StatusBar as RNStatusBar,
   StyleSheet,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -16,40 +14,17 @@ import { Button } from '../components/ui/Button';
 import { Card, CardContent } from '../components/ui/Card';
 import { Ionicons } from '@expo/vector-icons';
 import type { RootStackParamList } from '../navigation/AppNavigator';
-import { useVideoPlayer, VideoView } from 'expo-video';
+import WelcomeIntro from '../components/WelcomeIntro';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Landing'>;
 
 export default function LandingScreen() {
   const navigation = useNavigation<NavigationProp>();
   const [showIntro, setShowIntro] = useState(true);
-  const videoSource = require('../../assets/eye-opening.mp4');
-  const player = useVideoPlayer(videoSource, (p) => {
-    p.loop = false;
-    p.play();
-  });
-
-  React.useEffect(() => {
-    const subscription = player.addListener('playToEnd', () => {
-      setShowIntro(false);
-    });
-    return () => subscription.remove();
-  }, [player]);
 
   return (
     <SafeAreaView className="flex-1 bg-background">
-      {showIntro && (
-        <View style={styles.introOverlay}>
-          <VideoView player={player} style={styles.introVideo} nativeControls={false} />
-          <TouchableOpacity onPress={() => setShowIntro(false)} style={styles.skipButton}>
-            <Text style={styles.skipText}>Skip</Text>
-          </TouchableOpacity>
-          <View style={styles.introCaption}>
-            <Text style={styles.introTitle}>RetinaPilot</Text>
-            <Text style={styles.introSubtitle}>Your retinal screening copilot</Text>
-          </View>
-        </View>
-      )}
+      {showIntro && <WelcomeIntro onDismiss={() => setShowIntro(false)} />}
 
       <ScrollView
         contentContainerStyle={{ flexGrow: 1, paddingBottom: 32 }}
@@ -234,46 +209,6 @@ function FeatureRow({
 }
 
 const styles = StyleSheet.create({
-  introOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    zIndex: 10,
-    backgroundColor: '#05070c',
-  },
-  introVideo: {
-    width: '100%',
-    height: '100%',
-  },
-  skipButton: {
-    position: 'absolute',
-    top: Platform.OS === 'ios' ? 60 : (RNStatusBar.currentHeight ?? 0) + 20,
-    right: 20,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 999,
-    backgroundColor: 'rgba(15, 23, 42, 0.7)',
-  },
-  skipText: {
-    color: '#ffffff',
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  introCaption: {
-    position: 'absolute',
-    bottom: 64,
-    left: 24,
-    right: 24,
-  },
-  introTitle: {
-    color: '#ffffff',
-    fontSize: 32,
-    fontWeight: '700',
-    letterSpacing: -0.5,
-  },
-  introSubtitle: {
-    color: '#cbd5e1',
-    fontSize: 14,
-    marginTop: 6,
-  },
   logoBubble: {
     width: 80,
     height: 80,
