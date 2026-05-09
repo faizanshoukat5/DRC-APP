@@ -4,8 +4,10 @@ dist
 server/public
 vite.config.ts.*
 *.tar.gz
+mobile.zip
 .env
 .env.server
+.claude/settings.local.json
 ml-backend/efficientnet_b4_best.pth
 # Benchmark artifacts
 scripts/benchmark-images/

@@ -19,6 +19,21 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   },
 });
 
+// Clear invalid sessions on startup
+(async () => {
+  try {
+    const { data: session } = await supabase.auth.getSession();
+    if (!session) {
+      // No session, ensure storage is clean
+      await AsyncStorage.removeItem('supabase.auth.token');
+    }
+  } catch (error) {
+    // If there's any error loading session (e.g., invalid refresh token), clear storage
+    console.debug('Clearing invalid auth session on startup');
+    await AsyncStorage.removeItem('supabase.auth.token');
+  }
+})();
+
 // Add a global error handler for auth errors
 supabase.auth.onAuthStateChange((event, session) => {
   if (event === 'TOKEN_REFRESHED' && !session) {
