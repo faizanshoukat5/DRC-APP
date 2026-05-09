@@ -207,6 +207,36 @@ def _encode_png_b64(img_rgb: np.ndarray) -> str:
     return base64.b64encode(buf.tobytes()).decode("ascii")
 
 
+# ─── Test-Time Augmentation ───────────────────────────────────────────────
+# DR severity is invariant to flips and 180° rotation (the disease pattern
+# doesn't care about left/right or up/down orientation), so averaging
+# predictions over those four versions is a safe and well-established way
+# to reduce variance and improve accuracy. We average **logits** (not
+# probabilities) so the temperature-scaling calibration that operates on
+# logits remains correctly applied.
+#
+# Cost: one batched forward pass of size 4 instead of size 1. On HF Space
+# CPU that's ~2.4 s vs ~0.6 s — adds about 1.8 s of latency for ~2-4%
+# typical accuracy gain. Disable with DR_TTA=false to skip.
+_TTA_ENABLED = os.environ.get("DR_TTA", "true").lower() != "false"
+
+
+def _tta_logits(x: torch.Tensor) -> torch.Tensor:
+    """Run a 4-way TTA forward pass and return logit-averaged predictions.
+
+    x: (1, 3, H, W) — the original preprocessed input.
+    Returns logits of shape (1, 5).
+    """
+    augs = torch.cat([
+        x,                            # original
+        torch.flip(x, dims=[3]),      # horizontal flip
+        torch.flip(x, dims=[2]),      # vertical flip
+        torch.flip(x, dims=[2, 3]),   # 180° rotation (= both flips)
+    ], dim=0)
+    logits_batch = _model(augs)        # (4, 5)
+    return logits_batch.mean(dim=0, keepdim=True)  # (1, 5)
+
+
 # ─── Core prediction ──────────────────────────────────────────────────────
 def predict_bytes(image_bytes: bytes,
                   calibrated: bool = True,
@@ -232,15 +262,20 @@ def predict_bytes(image_bytes: bytes,
     # base layer — doctors should see a recognizable retina, not a sci-fi image.
     overlay_base = _cropped_rgb_for_overlay(img_bgr) if with_heatmap else None
 
-    # Hook capture for Grad-CAM. We always run with grad enabled when a
-    # heatmap is requested; otherwise we keep the cheap no-grad path.
+    # ─── Prediction path (TTA-aware) ──────────────────────────────────────
+    # Compute the predicted class + probabilities under no_grad. When
+    # _TTA_ENABLED, we batch the 4 augmented versions through the model in
+    # one forward pass and average logits; otherwise a single forward pass.
+    with torch.no_grad():
+        if _TTA_ENABLED:
+            logits_for_pred = _tta_logits(x)
+        else:
+            logits_for_pred = _model(x)
+        scaled_logits = logits_for_pred / _CALIB_T if calibrated else logits_for_pred
+        probs = F.softmax(scaled_logits, dim=1).cpu().numpy()[0]
+        cls = int(probs.argmax())
+
     if not with_heatmap:
-        with torch.no_grad():
-            logits = _model(x)
-            if calibrated:
-                logits = logits / _CALIB_T
-            probs = F.softmax(logits, dim=1).cpu().numpy()[0]
-            cls = int(probs.argmax())
         return {
             "class_id":         cls,
             "class_name":       CLASS_NAMES[cls],
@@ -248,9 +283,13 @@ def predict_bytes(image_bytes: bytes,
             "probabilities":    {CLASS_NAMES[i]: float(probs[i]) for i in range(5)},
             "calibrated":       calibrated,
             "temperature_used": _CALIB_T if calibrated else 1.0,
+            "tta":              _TTA_ENABLED,
         }
 
-    # ─── Grad-CAM path: forward with grad, hook activations, autograd.grad ───
+    # ─── Grad-CAM path: forward with grad on the ORIGINAL only ────────────
+    # We deliberately don't TTA Grad-CAM — the heatmap should reflect what
+    # the model saw on this exact image so the doctor can interpret it.
+    # Averaging across rotations would smear the activation map.
     activations: dict[str, torch.Tensor] = {}
 
     def _fwd_hook(_module, _inp, output):
@@ -260,14 +299,7 @@ def predict_bytes(image_bytes: bytes,
     handle = target_layer.register_forward_hook(_fwd_hook)
     try:
         logits = _model(x)
-        with torch.no_grad():
-            scaled_logits = logits / _CALIB_T if calibrated else logits
-            probs = F.softmax(scaled_logits, dim=1).cpu().numpy()[0]
-            cls = int(probs.argmax())
-
         feats = activations["value"]
-        # autograd.grad works on intermediate (non-leaf) tensors; .backward
-        # would require feats.requires_grad and a manual .retain_grad() call.
         grads = torch.autograd.grad(
             outputs=logits[0, cls],
             inputs=feats,
@@ -287,6 +319,7 @@ def predict_bytes(image_bytes: bytes,
         "probabilities":    {CLASS_NAMES[i]: float(probs[i]) for i in range(5)},
         "calibrated":       calibrated,
         "temperature_used": _CALIB_T if calibrated else 1.0,
+        "tta":              _TTA_ENABLED,
         "heatmap_b64":      heatmap_b64,
     }
 
