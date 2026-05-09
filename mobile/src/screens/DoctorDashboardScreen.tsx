@@ -259,33 +259,31 @@ export default function DoctorDashboardScreen() {
               {availableModels.length > 1 && (
                 <View className="mb-4">
                   <Text className="mb-2 text-sm font-medium text-foreground">
-                    Analysis model
+                    Analysis model <Text className="text-red-500">*</Text>
                   </Text>
-                  <View className="flex-row rounded-xl bg-muted/40 p-1">
-                    {availableModels.map((m) => {
+                  <View
+                    className="flex-row overflow-hidden rounded-lg border border-input bg-background"
+                  >
+                    {availableModels.map((m, idx) => {
                       const active = selectedModel === m.key;
+                      const isLast = idx === availableModels.length - 1;
                       return (
                         <TouchableOpacity
                           key={m.key}
                           onPress={() => setSelectedModel(m.key)}
                           disabled={isUploading}
-                          className={`flex-1 items-center rounded-lg py-2 ${
-                            active ? 'bg-white' : ''
-                          }`}
-                          style={
-                            active
-                              ? {
-                                  shadowColor: '#0f172a',
-                                  shadowOffset: { width: 0, height: 1 },
-                                  shadowOpacity: 0.06,
-                                  shadowRadius: 3,
-                                  elevation: 1,
-                                }
-                              : undefined
-                          }
+                          activeOpacity={0.7}
+                          className={`flex-1 flex-row items-center justify-center py-3 ${
+                            active ? 'bg-primary/10' : ''
+                          } ${!isLast ? 'border-r border-input' : ''}`}
                         >
+                          <Ionicons
+                            name="hardware-chip-outline"
+                            size={16}
+                            color={active ? '#0ea5e9' : '#94a3b8'}
+                          />
                           <Text
-                            className={`text-sm font-medium ${
+                            className={`ml-2 text-sm font-medium ${
                               active ? 'text-primary' : 'text-muted-foreground'
                             }`}
                           >
@@ -295,9 +293,17 @@ export default function DoctorDashboardScreen() {
                       );
                     })}
                   </View>
-                  <Text className="mt-1.5 text-xs text-muted-foreground">
-                    {availableModels.find((m) => m.key === selectedModel)?.description}
-                  </Text>
+                  <View className="mt-2 flex-row items-start">
+                    <Ionicons
+                      name="information-circle-outline"
+                      size={14}
+                      color="#64748b"
+                      style={{ marginTop: 1 }}
+                    />
+                    <Text className="ml-1.5 flex-1 text-xs text-muted-foreground">
+                      {availableModels.find((m) => m.key === selectedModel)?.description}
+                    </Text>
+                  </View>
                 </View>
               )}
 
