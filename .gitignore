@@ -7,3 +7,6 @@ vite.config.ts.*
 .env
 .env.server
 ml-backend/efficientnet_b4_best.pth
+# Benchmark artifacts
+scripts/benchmark-images/
+scripts/benchmark-results/
