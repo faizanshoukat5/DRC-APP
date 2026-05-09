@@ -4,10 +4,13 @@ import { supabase } from './supabaseClient';
 // new File/Directory API can come later — this keeps behavior identical.
 import * as FileSystem from 'expo-file-system/legacy';
 import {
+  DEFAULT_MODEL,
   diagnosisFromPrediction,
+  getModelInfo,
   isMlBackendConfigured,
   mapClassToSeverity,
   predictFundus,
+  type ModelKey,
 } from './mlApi';
 
 export type InferenceMode = 'remote' | 'failed' | 'pending' | 'stub';
@@ -28,6 +31,8 @@ export interface Scan {
   probabilities?: Record<string, number>;
   temperatureUsed?: number;
   inferenceMode?: InferenceMode;
+  modelKey?: string;
+  modelLabel?: string;
 }
 
 function scanFromRecord(record: any): Scan {
@@ -47,6 +52,8 @@ function scanFromRecord(record: any): Scan {
     probabilities: metadata.probabilities,
     temperatureUsed: metadata.temperatureUsed ?? metadata.temperature_used,
     inferenceMode: record.inference_mode,
+    modelKey: metadata.modelKey,
+    modelLabel: metadata.modelLabel,
   };
 }
 
@@ -78,6 +85,8 @@ export async function getScan(id: string): Promise<Scan | null> {
 export interface UploadScanOptions {
   onPhase?: (phase: UploadPhase) => void;
   doctorNotes?: string;
+  /** Which model to call for inference. Defaults to RetinaPilot v1. */
+  model?: ModelKey;
 }
 
 export async function uploadScan(
@@ -90,8 +99,9 @@ export async function uploadScan(
     typeof optionsOrCallback === 'function'
       ? { onPhase: optionsOrCallback }
       : optionsOrCallback ?? {};
-  const { onPhase, doctorNotes } = options;
+  const { onPhase, doctorNotes, model = DEFAULT_MODEL } = options;
   const trimmedNotes = doctorNotes?.trim();
+  const modelInfo = getModelInfo(model);
 
   onPhase?.('uploading');
 
@@ -146,7 +156,7 @@ export async function uploadScan(
   let prediction;
   let inferenceError: string | null = null;
   try {
-    prediction = await predictFundus(imageUri);
+    prediction = await predictFundus(imageUri, model);
   } catch (err: any) {
     inferenceError = err?.message ?? 'Analysis failed';
   }
@@ -173,6 +183,9 @@ export async function uploadScan(
     }
   }
 
+  const versionForModel = model === 'partner' ? 'partner_efficientnet_b4' : 'efficientnet_b4_v1';
+  const preprocForModel = model === 'partner' ? 'median_gamma' : 'ben_graham';
+
   const insertPayload = prediction
     ? {
         patient_id: patientId,
@@ -181,16 +194,18 @@ export async function uploadScan(
         diagnosis: diagnosisFromPrediction(prediction),
         severity: mapClassToSeverity(prediction.classId),
         confidence: Math.round(prediction.confidence * 100),
-        model_version: 'efficientnet_b4_v1',
+        model_version: versionForModel,
         inference_mode: 'remote',
         inference_time: inferenceTime,
-        preprocessing_method: 'ben_graham',
+        preprocessing_method: preprocForModel,
         metadata: {
           probabilities: prediction.probabilities,
           temperatureUsed: prediction.temperatureUsed,
           className: prediction.className,
           calibrated: prediction.calibrated,
           rawClassId: prediction.classId,
+          modelKey: prediction.modelKey,
+          modelLabel: modelInfo.label,
         },
         ...(trimmedNotes ? { doctor_notes: trimmedNotes } : {}),
       }
@@ -201,11 +216,15 @@ export async function uploadScan(
         diagnosis: 'Analysis failed',
         severity: 'unknown',
         confidence: 0,
-        model_version: 'efficientnet_b4_v1',
+        model_version: versionForModel,
         inference_mode: 'failed',
         inference_time: inferenceTime,
-        preprocessing_method: 'ben_graham',
-        metadata: { error: inferenceError ?? 'unknown error' },
+        preprocessing_method: preprocForModel,
+        metadata: {
+          error: inferenceError ?? 'unknown error',
+          modelKey: model,
+          modelLabel: modelInfo.label,
+        },
         ...(trimmedNotes ? { doctor_notes: trimmedNotes } : {}),
       };
 

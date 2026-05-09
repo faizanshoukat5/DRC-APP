@@ -214,6 +214,16 @@ export default function ResultsScreen() {
                   </View>
                 </View>
               )}
+
+              {scan.modelLabel && (
+                <View className="mt-3 flex-row items-center">
+                  <Ionicons name="hardware-chip-outline" size={14} color="#64748b" />
+                  <Text className="ml-1.5 text-xs text-muted-foreground">
+                    Analyzed by{' '}
+                    <Text className="font-medium text-foreground">{scan.modelLabel}</Text>
+                  </Text>
+                </View>
+              )}
             </CardContent>
           </Card>
         </View>

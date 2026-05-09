@@ -27,6 +27,11 @@ import {
   type Scan,
   type UploadPhase,
 } from '../lib/api';
+import {
+  DEFAULT_MODEL,
+  getAvailableModels,
+  type ModelKey,
+} from '../lib/mlApi';
 import { formatDate, getSeverityBadgeVariant } from '../lib/utils';
 import type { RootStackParamList } from '../navigation/AppNavigator';
 
@@ -45,6 +50,8 @@ export default function DoctorDashboardScreen() {
   const [doctorNotes, setDoctorNotes] = useState('');
   const [isUploading, setIsUploading] = useState(false);
   const [uploadPhase, setUploadPhase] = useState<UploadPhase | null>(null);
+  const availableModels = React.useMemo(() => getAvailableModels(), []);
+  const [selectedModel, setSelectedModel] = useState<ModelKey>(DEFAULT_MODEL);
 
   const loadData = useCallback(async () => {
     if (!user?.id) return;
@@ -117,6 +124,7 @@ export default function DoctorDashboardScreen() {
       const scan = await uploadScanForPatient(selectedPatient.id, selectedImage, {
         onPhase: setUploadPhase,
         doctorNotes,
+        model: selectedModel,
       });
       setSelectedImage(null);
       setSelectedPatient(null);
@@ -246,6 +254,52 @@ export default function DoctorDashboardScreen() {
                   </View>
                 )}
               </View>
+
+              {/* Model picker — only show when more than one backend is configured */}
+              {availableModels.length > 1 && (
+                <View className="mb-4">
+                  <Text className="mb-2 text-sm font-medium text-foreground">
+                    Analysis model
+                  </Text>
+                  <View className="flex-row rounded-xl bg-muted/40 p-1">
+                    {availableModels.map((m) => {
+                      const active = selectedModel === m.key;
+                      return (
+                        <TouchableOpacity
+                          key={m.key}
+                          onPress={() => setSelectedModel(m.key)}
+                          disabled={isUploading}
+                          className={`flex-1 items-center rounded-lg py-2 ${
+                            active ? 'bg-white' : ''
+                          }`}
+                          style={
+                            active
+                              ? {
+                                  shadowColor: '#0f172a',
+                                  shadowOffset: { width: 0, height: 1 },
+                                  shadowOpacity: 0.06,
+                                  shadowRadius: 3,
+                                  elevation: 1,
+                                }
+                              : undefined
+                          }
+                        >
+                          <Text
+                            className={`text-sm font-medium ${
+                              active ? 'text-primary' : 'text-muted-foreground'
+                            }`}
+                          >
+                            {m.label}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                  <Text className="mt-1.5 text-xs text-muted-foreground">
+                    {availableModels.find((m) => m.key === selectedModel)?.description}
+                  </Text>
+                </View>
+              )}
 
               {/* Image Upload Area */}
               {selectedImage ? (
