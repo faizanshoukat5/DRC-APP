@@ -328,13 +328,12 @@ def predict_bytes(image_bytes: bytes,
     finally:
         handle.remove()
 
-    # Render all registered colormaps from the same CAM so the Results page
-    # can offer a full palette toggle without re-running inference.
-    # Cost is cheap — feats/grads are already on hand; each colormap is just
-    # cv2.applyColorMap + alpha blend (~50 ms on CPU).
+    # Always render Turbo + Inferno so the Results page has an instant toggle
+    # for the two best-contrast clinical palettes. Additional colormaps are
+    # served on-demand via the /recolor endpoint (single-pass, ~300 ms).
     base_for_overlay = overlay_base if overlay_base is not None else pre_rgb
     requested_cm = colormap.lower() if colormap.lower() in _COLORMAPS else _DEFAULT_COLORMAP
-    colormaps_to_render = set(_COLORMAPS.keys())  # turbo, inferno, jet, viridis, magma
+    colormaps_to_render = {"turbo", "inferno", requested_cm}
 
     heatmaps_b64: dict[str, str] = {}
     for cm in colormaps_to_render:
@@ -429,6 +428,72 @@ async def predict(
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"internal error: {type(e).__name__}: {e}")
+
+
+def _recolor_bytes(image_bytes: bytes, colormap: str = _DEFAULT_COLORMAP) -> str:
+    """Single-pass Grad-CAM recolor — no TTA, no calibration, no quality gate.
+
+    Used by /recolor for on-demand palette switching after a scan has already
+    been classified. Returns the heatmap overlay as a base64-encoded PNG string.
+    ~300 ms on CPU (one forward+backward vs ~2 s for TTA predict).
+    """
+    arr = np.frombuffer(image_bytes, dtype=np.uint8)
+    img_bgr = cv2.imdecode(arr, cv2.IMREAD_COLOR)
+    if img_bgr is None:
+        raise ValueError("could not decode image")
+
+    pre_rgb = _ben_graham(img_bgr)
+    overlay_base = _cropped_rgb_for_overlay(img_bgr)
+    x = _infer_tf(Image.fromarray(pre_rgb)).unsqueeze(0).to(DEVICE)
+
+    activations: dict[str, torch.Tensor] = {}
+
+    def _fwd_hook(_m, _i, output):
+        activations["value"] = output
+
+    target_layer = _model.features[-1]
+    handle = target_layer.register_forward_hook(_fwd_hook)
+    try:
+        logits = _model(x)
+        cls = int(logits.argmax(dim=1).item())
+        feats = activations["value"]
+        grads = torch.autograd.grad(
+            outputs=logits[0, cls],
+            inputs=feats,
+            retain_graph=False,
+            create_graph=False,
+        )[0]
+    finally:
+        handle.remove()
+
+    cm = colormap.lower() if colormap.lower() in _COLORMAPS else _DEFAULT_COLORMAP
+    base_for_overlay = overlay_base if overlay_base is not None else pre_rgb
+    overlay_rgb = _gradcam_overlay(feats, grads, base_for_overlay, colormap=cm)
+    return _encode_png_b64(overlay_rgb)
+
+
+@app.post("/recolor")
+async def recolor(
+    file: UploadFile = File(...),
+    colormap: str = Form(default=_DEFAULT_COLORMAP),
+    _: None = Depends(_check_key),
+):
+    """Re-render a Grad-CAM heatmap with a different colormap palette.
+
+    Single forward pass (no TTA) — ~300 ms on CPU. Use this after a /predict
+    call when the user switches to a colormap that was not pre-rendered.
+    Returns {heatmap_b64: str, colormap: str}.
+    """
+    if not file.content_type or not file.content_type.startswith("image/"):
+        raise HTTPException(status_code=400, detail="upload must be an image")
+    try:
+        data = await file.read()
+        heatmap_b64 = _recolor_bytes(data, colormap)
+        return {"heatmap_b64": heatmap_b64, "colormap": colormap.lower()}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"recolor failed: {type(e).__name__}: {e}")
 
 
 # Run with: uvicorn app:app --reload
