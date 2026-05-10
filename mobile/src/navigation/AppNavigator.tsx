@@ -5,6 +5,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { ActivityIndicator, View } from 'react-native';
 import * as Linking from 'expo-linking';
+import Constants from 'expo-constants';
 import { useAuthContext } from '../contexts/AuthContext';
 import OfflineBanner from '../components/OfflineBanner';
 
@@ -23,7 +24,12 @@ import HistoryScreen from '../screens/HistoryScreen';
 import SelectDoctorScreen from '../screens/SelectDoctorScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 import FAQScreen from '../screens/FAQScreen';
-import AnalysisScreen from '../screens/AnalysisScreen';
+import DoctorPatientsScreen from '../screens/DoctorPatientsScreen';
+import DoctorPatientDetailScreen from '../screens/DoctorPatientDetailScreen';
+import ProfileEditScreen from '../screens/ProfileEditScreen';
+import AdminDoctorDirectoryScreen from '../screens/AdminDoctorDirectoryScreen';
+import NotificationsScreen from '../screens/NotificationsScreen';
+import FollowUpScreen from '../screens/FollowUpScreen';
 
 // Icons
 import { Ionicons } from '@expo/vector-icons';
@@ -36,26 +42,34 @@ export type RootStackParamList = {
   ResetPassword: undefined;
   MainTabs: undefined;
   Results: { scanId: string };
-  Analysis: undefined;
   SelectDoctor: undefined;
-  Settings: undefined;
+  DoctorPatients: undefined;
+  DoctorPatientDetail: { patientId: string };
+  ProfileEdit: undefined;
+  AdminDoctorDirectory: undefined;
+  Notifications: undefined;
+  FollowUp: { scanId: string };
   FAQ: undefined;
   PendingDoctor: undefined;
 };
 
 // Deep linking — when the user taps the password reset email, the OS opens
-// `retinapilot://reset-password` (or the Expo Go fallback in dev). React
-// Navigation's linking integration is mostly a noop here because the actual
-// session handover is handled by Supabase parsing the URL fragment; we just
-// need a prefix so the app foregrounds correctly.
-const linking: LinkingOptions<RootStackParamList> = {
-  prefixes: [Linking.createURL('/'), 'retinapilot://'],
-  config: {
-    screens: {
-      ResetPassword: 'reset-password',
-    },
-  },
-};
+// `retinapilot://reset-password` on installed builds. In Expo Go we skip the
+// linking config entirely: the dev server URL (`exp://<lan>:8081/--/`) can
+// trip up React Navigation's URL parser during state transitions, throwing
+// a "missing navigation context" error. The Supabase recovery flow listens
+// to the auth event regardless, so deep link config is purely for prod.
+const isExpoGo = Constants.appOwnership === 'expo';
+const linking: LinkingOptions<RootStackParamList> | undefined = isExpoGo
+  ? undefined
+  : {
+      prefixes: ['retinapilot://', Linking.createURL('/')],
+      config: {
+        screens: {
+          ResetPassword: 'reset-password',
+        },
+      },
+    };
 
 export type MainTabParamList = {
   Dashboard: undefined;
@@ -184,7 +198,7 @@ function MainTabs() {
 }
 
 export default function AppNavigator() {
-  const { isLoading, isAuthenticated, role, isPasswordRecovery } = useAuthContext();
+  const { isLoading, isAuthenticated, isPasswordRecovery } = useAuthContext();
 
   if (isLoading) {
     return (
@@ -217,11 +231,13 @@ export default function AppNavigator() {
           <>
             <Stack.Screen name="MainTabs" component={MainTabs} />
             <Stack.Screen name="Results" component={ResultsScreen} />
-            {role === 'doctor' && (
-              <Stack.Screen name="Analysis" component={AnalysisScreen} />
-            )}
             <Stack.Screen name="SelectDoctor" component={SelectDoctorScreen} />
-            <Stack.Screen name="Settings" component={SettingsScreen} />
+            <Stack.Screen name="DoctorPatients" component={DoctorPatientsScreen} />
+            <Stack.Screen name="DoctorPatientDetail" component={DoctorPatientDetailScreen} />
+            <Stack.Screen name="ProfileEdit" component={ProfileEditScreen} />
+            <Stack.Screen name="AdminDoctorDirectory" component={AdminDoctorDirectoryScreen} />
+            <Stack.Screen name="Notifications" component={NotificationsScreen} />
+            <Stack.Screen name="FollowUp" component={FollowUpScreen} />
           </>
         )}
         {/* Register FAQ after the auth branches so it is pushed onto the stack (back works) */}

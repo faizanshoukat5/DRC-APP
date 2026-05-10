@@ -50,12 +50,12 @@ const faqCategories = [
       {
         q: 'Can I upload my own fundus images?',
         a:
-          'Currently, fundus image uploads are handled by your assigned doctor to ensure image quality and proper clinical workflow. You can view all your scan results, download reports, and track your eye health history through your patient dashboard.',
+          'Currently, fundus image uploads are handled by your assigned doctor to ensure image quality and proper clinical workflow. You can view scan results and track your eye health history through your patient dashboard.',
       },
       {
         q: 'How do I view my scan results?',
         a:
-          'After your doctor uploads and analyzes your fundus images, the results will appear in your Patient Dashboard. You can see the severity grade, AI confidence score, heatmap visualizations, and download PDF reports for your records.',
+          'After your doctor uploads and analyzes your fundus images, the latest results will appear in your Patient Dashboard and all reports will be available in Scan History. You can see the severity grade, AI confidence score, heatmap visualizations, and doctor notes.',
       },
       {
         q: 'Can I change my assigned doctor?',
@@ -112,9 +112,9 @@ const faqCategories = [
           'AI analysis typically completes in under 45 seconds. You\'ll see the severity grade, confidence score, and heatmap visualization as soon as processing is complete.',
       },
       {
-        q: 'Can I download my reports?',
+        q: 'Can I save my reports?',
         a:
-          'Yes, both patients and doctors can download PDF reports for each scan. These reports include the original image, AI analysis results, heatmaps, and any clinical notes added by the doctor.',
+          'Yes. Open a scan result and use Share PDF Report to generate a portable report with the diagnosis, confidence, doctor notes, and follow-up details.',
       },
     ],
   },

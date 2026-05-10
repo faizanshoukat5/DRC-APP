@@ -135,7 +135,7 @@ export default function SignUpScreen() {
             />
           </View>
           {role === 'doctor' && (
-            <View className="mt-2 flex-row items-start rounded-lg bg-amber-50 p-3">
+            <View key="doctor-approval-note" className="mt-2 flex-row items-start rounded-lg bg-amber-50 p-3">
               <Ionicons name="time-outline" size={16} color="#b45309" style={{ marginTop: 1 }} />
               <Text className="ml-2 flex-1 text-xs text-amber-800">
                 Doctor accounts require admin approval before you can upload scans.
@@ -155,6 +155,7 @@ export default function SignUpScreen() {
             )}
 
             <Input
+              key="full-name"
               label="Full name *"
               placeholder="Jane Doe"
               value={name}
@@ -164,6 +165,7 @@ export default function SignUpScreen() {
             />
 
             <Input
+              key="email"
               label="Email *"
               placeholder="you@example.com"
               value={email}
@@ -175,6 +177,7 @@ export default function SignUpScreen() {
             />
 
             <Input
+              key="phone"
               label="Phone"
               placeholder="+1 (555) 123-4567"
               value={phone}
@@ -185,8 +188,9 @@ export default function SignUpScreen() {
             />
 
             {role === 'doctor' && (
-              <>
+              <React.Fragment key="doctor-fields">
                 <Input
+                  key="license-number"
                   label="License number *"
                   placeholder="MED-12345"
                   value={licenseNumber}
@@ -195,16 +199,17 @@ export default function SignUpScreen() {
                 />
 
                 <Input
+                  key="specialty"
                   label="Specialty"
                   placeholder="Ophthalmology"
                   value={specialty}
                   onChangeText={setSpecialty}
                   containerClassName="mb-3"
                 />
-              </>
+              </React.Fragment>
             )}
 
-            <View className="relative mb-3">
+            <View key="password" className="relative mb-3">
               <Input
                 label="Password *"
                 placeholder="At least 6 characters"
@@ -227,6 +232,7 @@ export default function SignUpScreen() {
             </View>
 
             <Input
+              key="confirm-password"
               label="Confirm password *"
               placeholder="Re-enter password"
               value={confirmPassword}
@@ -236,6 +242,7 @@ export default function SignUpScreen() {
             />
 
             <Button
+              key="submit"
               size="lg"
               variant="default"
               onPress={handleSignUp}
@@ -273,24 +280,13 @@ function RoleTab({
   return (
     <TouchableOpacity
       onPress={onPress}
-      className={`flex-1 flex-row items-center justify-center rounded-lg py-3 ${
-        active ? 'bg-white shadow-sm' : ''
-      }`}
-      style={
-        active
-          ? {
-              shadowColor: '#0f172a',
-              shadowOffset: { width: 0, height: 1 },
-              shadowOpacity: 0.06,
-              shadowRadius: 3,
-              elevation: 1,
-            }
-          : undefined
-      }
+      className="flex-1 flex-row items-center justify-center rounded-lg py-3"
+      style={active ? styles.roleTabActive : styles.roleTabInactive}
     >
       <Ionicons name={icon} size={18} color={active ? '#0ea5e9' : '#64748b'} />
       <Text
-        className={`ml-2 text-sm font-medium ${active ? 'text-primary' : 'text-muted-foreground'}`}
+        className="ml-2 text-sm font-medium"
+        style={active ? styles.roleTabTextActive : styles.roleTabTextInactive}
       >
         {label}
       </Text>
@@ -308,5 +304,23 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 12,
+  },
+  roleTabActive: {
+    backgroundColor: '#ffffff',
+    shadowColor: '#0f172a',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 3,
+    elevation: 1,
+  },
+  roleTabInactive: {
+    backgroundColor: 'transparent',
+    elevation: 0,
+  },
+  roleTabTextActive: {
+    color: '#0ea5e9',
+  },
+  roleTabTextInactive: {
+    color: '#64748b',
   },
 });

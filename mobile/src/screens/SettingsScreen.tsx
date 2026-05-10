@@ -16,7 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import ChangePasswordModal from '../components/ChangePasswordModal';
 import type { RootStackParamList } from '../navigation/AppNavigator';
 
-type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Settings'>;
+type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 export default function SettingsScreen() {
   const navigation = useNavigation<NavigationProp>();
@@ -74,6 +74,13 @@ export default function SettingsScreen() {
                   </View>
                 </View>
               </View>
+              <Button
+                variant="outline"
+                className="mt-4 w-full"
+                onPress={() => navigation.navigate('ProfileEdit')}
+              >
+                Edit Profile
+              </Button>
             </CardContent>
           </Card>
         </View>
@@ -132,10 +139,22 @@ export default function SettingsScreen() {
             </CardHeader>
             <CardContent>
               <SettingLink
+                icon="notifications-outline"
+                label="Notifications"
+                onPress={() => navigation.navigate('Notifications')}
+              />
+              <SettingLink
                 icon="help-circle-outline"
                 label="FAQ"
                 onPress={() => navigation.navigate('FAQ')}
               />
+              {user?.role === 'doctor' && (
+                <SettingLink
+                  icon="people-outline"
+                  label="Patient Directory"
+                  onPress={() => navigation.navigate('DoctorPatients')}
+                />
+              )}
               {user?.role === 'patient' && (
                 <SettingLink
                   icon="medical-outline"
@@ -143,16 +162,13 @@ export default function SettingsScreen() {
                   onPress={() => navigation.navigate('SelectDoctor')}
                 />
               )}
-              <SettingLink
-                icon="document-text-outline"
-                label="Privacy Policy"
-                onPress={() => Alert.alert('Info', 'Privacy policy coming soon.')}
-              />
-              <SettingLink
-                icon="information-circle-outline"
-                label="Terms of Service"
-                onPress={() => Alert.alert('Info', 'Terms of service coming soon.')}
-              />
+              {user?.role === 'admin' && (
+                <SettingLink
+                  icon="shield-checkmark-outline"
+                  label="Doctor Directory"
+                  onPress={() => navigation.navigate('AdminDoctorDirectory')}
+                />
+              )}
             </CardContent>
           </Card>
         </View>

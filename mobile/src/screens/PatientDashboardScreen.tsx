@@ -216,21 +216,15 @@ export default function PatientDashboardScreen() {
               >
                 View Details
               </Button>
-              <Button
-                variant="outline"
-                onPress={() => navigation.navigate('Results', { scanId: latestScan.id })}
-              >
-                Download
-              </Button>
             </View>
           </View>
         </Card>
       )}
 
-      {/* Report History Title */}
+      {/* Recent Reports Title */}
       <View className="mt-6 mb-3 px-4 flex-row items-center justify-between">
-        <Text className="text-lg font-semibold text-foreground">Report History</Text>
-        <Badge variant="secondary">{totalScans} reports</Badge>
+        <Text className="text-lg font-semibold text-foreground">Recent Reports</Text>
+        <Badge variant="secondary">{totalScans} total</Badge>
       </View>
     </View>
   ), [doctor, navigation, totalScans, latestConfidence, latestScan]);
@@ -240,7 +234,7 @@ export default function PatientDashboardScreen() {
       <Text className="mb-3 text-lg font-semibold text-foreground">Quick Actions</Text>
       <View className="flex-row flex-wrap">
         <QuickActionButton icon="help-circle-outline" label="FAQ" onPress={() => navigation.navigate('FAQ')} />
-        <QuickActionButton icon="settings-outline" label="Settings" onPress={() => navigation.navigate('Settings')} />
+        <QuickActionButton icon="notifications-outline" label="Notifications" onPress={() => navigation.navigate('Notifications')} />
       </View>
       <View className="h-8" />
     </View>
@@ -271,7 +265,7 @@ export default function PatientDashboardScreen() {
   return (
     <SafeAreaView className="flex-1 bg-background">
       <FlatList
-        data={scans}
+        data={scans.slice(0, 3)}
         renderItem={renderItem}
         keyExtractor={(item) => item.id}
         ListHeaderComponent={renderHeader}

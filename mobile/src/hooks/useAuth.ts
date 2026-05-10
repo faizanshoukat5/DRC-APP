@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import * as Linking from 'expo-linking';
 import { supabase } from '../lib/supabaseClient';
+import { updateProfile as updateProfileRecord, type ProfileUpdateInput } from '../lib/api';
 import type { User } from '@supabase/supabase-js';
 
 export type UserRole = 'patient' | 'doctor' | 'admin';
@@ -285,6 +286,22 @@ export function useAuth() {
     setIsPasswordRecovery(false);
   }, []);
 
+  const updateProfile = useCallback(async (profile: ProfileUpdateInput) => {
+    if (!user?.id) throw new Error('You must be signed in to update your profile.');
+    setIsLoading(true);
+    setLastError(null);
+    try {
+      await updateProfileRecord(user.id, profile);
+      const updatedProfile = await fetchProfile(user.id);
+      if (updatedProfile) setUser(updatedProfile);
+    } catch (error: any) {
+      setLastError(error.message ?? 'Failed to update profile');
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  }, [user?.id]);
+
   const state: AuthState = useMemo(() => ({
     user,
     isLoading,
@@ -302,5 +319,8 @@ export function useAuth() {
     signOut,
     requestPasswordReset,
     updatePassword,
+    updateProfile,
   };
 }
+
+export type { ProfileUpdateInput };

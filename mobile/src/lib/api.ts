@@ -33,10 +33,14 @@ export interface Scan {
   inferenceMode?: InferenceMode;
   modelKey?: string;
   modelLabel?: string;
+  followUpDueDate?: string;
+  followUpNotes?: string;
+  followUpStatus?: 'needed' | 'scheduled' | 'completed';
 }
 
 function scanFromRecord(record: any): Scan {
   const metadata = record.metadata ?? {};
+  const followUp = metadata.followUp ?? {};
   return {
     id: String(record.id),
     patientId: record.patient_id,
@@ -54,6 +58,9 @@ function scanFromRecord(record: any): Scan {
     inferenceMode: record.inference_mode,
     modelKey: metadata.modelKey,
     modelLabel: metadata.modelLabel,
+    followUpDueDate: followUp.dueDate ?? undefined,
+    followUpNotes: followUp.notes ?? undefined,
+    followUpStatus: followUp.status ?? undefined,
   };
 }
 
@@ -80,6 +87,20 @@ export async function getScan(id: string): Promise<Scan | null> {
   if (!data) return null;
 
   return scanFromRecord(data);
+}
+
+/** Lightweight profile lookup for things like PDF report headers/filenames.
+ *  Returns null on missing row or RLS denial — callers should fall back to
+ *  a placeholder rather than blocking the UI on this. */
+export async function getProfileName(userId: string): Promise<string | null> {
+  if (!userId) return null;
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('name')
+    .eq('id', userId)
+    .maybeSingle();
+  if (error || !data) return null;
+  return (data.name as string) || null;
 }
 
 export interface UploadScanOptions {
@@ -254,6 +275,69 @@ export async function updateScanDoctorNotes(scanId: string, notes: string): Prom
   if (error) throw new Error(error.message);
 }
 
+export interface FollowUpInput {
+  dueDate?: string;
+  notes?: string;
+  status?: 'needed' | 'scheduled' | 'completed';
+}
+
+export async function updateScanFollowUp(scanId: string, followUp: FollowUpInput): Promise<void> {
+  const { data, error: readError } = await supabase
+    .from('scans')
+    .select('metadata')
+    .eq('id', scanId)
+    .maybeSingle();
+
+  if (readError) throw new Error(readError.message);
+
+  const currentMetadata =
+    data?.metadata && typeof data.metadata === 'object' && !Array.isArray(data.metadata)
+      ? data.metadata
+      : {};
+
+  const nextMetadata = {
+    ...currentMetadata,
+    followUp: {
+      dueDate: followUp.dueDate?.trim() || null,
+      notes: followUp.notes?.trim() || null,
+      status: followUp.status ?? 'needed',
+      updatedAt: new Date().toISOString(),
+    },
+  };
+
+  const { error } = await supabase
+    .from('scans')
+    .update({ metadata: nextMetadata })
+    .eq('id', scanId);
+
+  if (error) throw new Error(error.message);
+}
+
+export interface ProfileUpdateInput {
+  name?: string;
+  phone?: string | null;
+  dateOfBirth?: string | null;
+  gender?: string | null;
+  address?: string | null;
+  licenseNumber?: string | null;
+  specialty?: string | null;
+}
+
+export async function updateProfile(userId: string, profile: ProfileUpdateInput): Promise<void> {
+  const payload: Record<string, string | null> = {};
+
+  if (profile.name !== undefined) payload.name = profile.name.trim();
+  if (profile.phone !== undefined) payload.phone = profile.phone?.trim() || null;
+  if (profile.dateOfBirth !== undefined) payload.date_of_birth = profile.dateOfBirth?.trim() || null;
+  if (profile.gender !== undefined) payload.gender = profile.gender?.trim() || null;
+  if (profile.address !== undefined) payload.address = profile.address?.trim() || null;
+  if (profile.licenseNumber !== undefined) payload.license_number = profile.licenseNumber?.trim() || null;
+  if (profile.specialty !== undefined) payload.specialty = profile.specialty?.trim() || null;
+
+  const { error } = await supabase.from('profiles').update(payload).eq('id', userId);
+  if (error) throw new Error(error.message);
+}
+
 export interface ApprovedDoctor {
   id: string;
   name: string;
@@ -279,6 +363,10 @@ export interface PendingDoctor {
   createdAt: string;
 }
 
+export interface DoctorDirectoryItem extends PendingDoctor {
+  status: 'pending' | 'approved' | 'rejected';
+}
+
 export async function getApprovedDoctors(): Promise<ApprovedDoctor[]> {
   const { data, error } = await supabase
     .from('profiles')
@@ -294,6 +382,25 @@ export async function getApprovedDoctors(): Promise<ApprovedDoctor[]> {
     email: d.email,
     specialty: d.specialty,
     licenseNumber: d.license_number,
+  }));
+}
+
+export async function getDoctorDirectory(): Promise<DoctorDirectoryItem[]> {
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('id, name, email, license_number, specialty, status, created_at')
+    .eq('role', 'doctor')
+    .order('created_at', { ascending: false });
+
+  if (error) throw new Error(error.message);
+  return (data || []).map((d: any) => ({
+    id: d.id,
+    name: d.name,
+    email: d.email,
+    licenseNumber: d.license_number,
+    specialty: d.specialty,
+    status: d.status,
+    createdAt: d.created_at,
   }));
 }
 
@@ -408,6 +515,19 @@ export async function rejectDoctor(doctorId: string): Promise<void> {
   const { error } = await supabase
     .from('profiles')
     .update({ status: 'rejected' })
+    .eq('id', doctorId)
+    .eq('role', 'doctor');
+
+  if (error) throw new Error(error.message);
+}
+
+export async function updateDoctorStatus(
+  doctorId: string,
+  status: 'pending' | 'approved' | 'rejected',
+): Promise<void> {
+  const { error } = await supabase
+    .from('profiles')
+    .update({ status })
     .eq('id', doctorId)
     .eq('role', 'doctor');
 

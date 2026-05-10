@@ -1,5 +1,12 @@
 import React, { createContext, useContext, ReactNode } from 'react';
-import { useAuth, AuthProfile, SignUpPayload, UserRole, DoctorStatus } from '../hooks/useAuth';
+import {
+  useAuth,
+  AuthProfile,
+  SignUpPayload,
+  UserRole,
+  DoctorStatus,
+  ProfileUpdateInput,
+} from '../hooks/useAuth';
 
 type AuthContextValue = {
   user: AuthProfile | null;
@@ -14,6 +21,7 @@ type AuthContextValue = {
   signOut: () => Promise<void>;
   requestPasswordReset: (email: string) => Promise<void>;
   updatePassword: (newPassword: string) => Promise<void>;
+  updateProfile: (profile: ProfileUpdateInput) => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);

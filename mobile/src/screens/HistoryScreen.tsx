@@ -15,17 +15,18 @@ import { PressableCard } from '../components/ui/Card';
 import { Card, CardContent } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { Ionicons } from '@expo/vector-icons';
-import { getScans, type Scan } from '../lib/api';
+import { getMyPatients, getScans, type Scan } from '../lib/api';
 import { formatDate, getSeverityBadgeVariant } from '../lib/utils';
 import type { RootStackParamList } from '../navigation/AppNavigator';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'MainTabs'>;
+type HistoryScan = Scan & { patientName?: string };
 
 export default function HistoryScreen() {
   const navigation = useNavigation<NavigationProp>();
   const { user } = useAuthContext();
 
-  const [scans, setScans] = useState<Scan[]>([]);
+  const [scans, setScans] = useState<HistoryScan[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -33,8 +34,27 @@ export default function HistoryScreen() {
     if (!user?.id) return;
 
     try {
-      const data = await getScans(user.id);
-      setScans(data);
+      if (user.role === 'doctor') {
+        const patients = await getMyPatients(user.id);
+        const doctorScans = patients
+          .flatMap((patient) =>
+            (patient.scans || []).map((scan) => ({
+              ...scan,
+              patientName: patient.name,
+            })),
+          )
+          .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        setScans(doctorScans);
+        return;
+      }
+
+      if (user.role === 'patient') {
+        const data = await getScans(user.id);
+        setScans(data);
+        return;
+      }
+
+      setScans([]);
     } catch (error) {
       console.error('Failed to load scans:', error);
     } finally {
@@ -71,7 +91,8 @@ export default function HistoryScreen() {
     }
     groups[monthYear].push(scan);
     return groups;
-  }, {} as Record<string, Scan[]>);
+  }, {} as Record<string, HistoryScan[]>);
+  const isDoctor = user?.role === 'doctor';
 
   return (
     <SafeAreaView className="flex-1 bg-background">
@@ -83,7 +104,9 @@ export default function HistoryScreen() {
       >
         {/* Header */}
         <View className="px-4 pt-4">
-          <Text className="text-2xl font-bold text-foreground">Scan History</Text>
+          <Text className="text-2xl font-bold text-foreground">
+            {isDoctor ? 'Patient Scan History' : 'Scan History'}
+          </Text>
           <Text className="mt-1 text-muted-foreground">
             {scans.length} total {scans.length === 1 ? 'scan' : 'scans'}
           </Text>
@@ -116,6 +139,11 @@ export default function HistoryScreen() {
                         </View>
                       )}
                       <View className="ml-4 flex-1">
+                        {isDoctor && scan.patientName && (
+                          <Text className="text-xs font-medium text-primary">
+                            {scan.patientName}
+                          </Text>
+                        )}
                         <Text className="font-medium text-foreground">
                           {scan.diagnosis || 'Pending Analysis'}
                         </Text>
@@ -154,7 +182,9 @@ export default function HistoryScreen() {
                   No Scans Yet
                 </Text>
                 <Text className="mt-2 text-center text-muted-foreground">
-                  Upload your first retinal scan to get started with AI-powered analysis.
+                  {isDoctor
+                    ? 'Reports for your assigned patients will appear here after analysis.'
+                    : 'Your doctor will upload retinal scans, and reports will appear here.'}
                 </Text>
               </CardContent>
             </Card>

@@ -6,10 +6,12 @@ import {
   RefreshControl,
   Alert,
   ActivityIndicator,
+  TouchableOpacity,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AppHeader from '../components/ui/AppHeader';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useAuthContext } from '../contexts/AuthContext';
 import { Button } from '../components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/Card';
@@ -17,8 +19,12 @@ import { Badge } from '../components/ui/Badge';
 import { Ionicons } from '@expo/vector-icons';
 import { getPendingDoctors, approveDoctor, rejectDoctor, type PendingDoctor } from '../lib/api';
 import { formatDate } from '../lib/utils';
+import type { RootStackParamList } from '../navigation/AppNavigator';
+
+type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'MainTabs'>;
 
 export default function AdminDashboardScreen() {
+  const navigation = useNavigation<NavigationProp>();
   const { user } = useAuthContext();
 
   const [pendingDoctors, setPendingDoctors] = useState<PendingDoctor[]>([]);
@@ -141,6 +147,24 @@ export default function AdminDashboardScreen() {
               <Text className="text-sm text-muted-foreground">Pending Approvals</Text>
             </CardContent>
           </Card>
+        </View>
+
+        <View className="mt-4 px-4">
+          <TouchableOpacity
+            onPress={() => navigation.navigate('AdminDoctorDirectory')}
+            className="flex-row items-center rounded-xl border border-primary/20 bg-primary/5 p-4"
+          >
+            <View className="mr-3 h-10 w-10 items-center justify-center rounded-full bg-primary/10">
+              <Ionicons name="medical-outline" size={20} color="#0ea5e9" />
+            </View>
+            <View className="flex-1">
+              <Text className="font-semibold text-foreground">Doctor Directory</Text>
+              <Text className="text-sm text-muted-foreground">
+                Review approved, pending, and rejected doctor accounts.
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color="#94a3b8" />
+          </TouchableOpacity>
         </View>
 
         {/* Pending Doctors */}
