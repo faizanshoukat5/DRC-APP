@@ -1,5 +1,7 @@
+import * as FileSystem from 'expo-file-system/legacy';
+
 // ML backend abstraction. We support multiple FastAPI-style backends so doctors
-// can compare predictions from different models (e.g. RetinaPilot's calibrated
+// can compare predictions from different models (e.g. AEYE's calibrated
 // EfficientNet-B4 vs a partner's model). Each backend has its own URL, optional
 // API key, request shape, and response shape. We normalize everything to a
 // single Prediction interface for the rest of the app.
@@ -15,8 +17,14 @@ export interface Prediction {
   calibrated: boolean;
   /** Calibration T. 1.0 if the backend doesn't calibrate. */
   temperatureUsed: number;
-  /** Base64-encoded PNG of the Grad-CAM overlay, when the backend returns one. */
+  /** Base64-encoded PNG of the primary Grad-CAM overlay (user's chosen colormap). */
   heatmapBase64?: string;
+  /** Multiple Grad-CAM renderings keyed by colormap name (turbo, inferno, ...).
+   *  Newer backend builds populate this so the Results screen can offer a
+   *  client-side toggle. Older builds only return heatmapBase64. */
+  heatmapsBase64?: Record<string, string>;
+  /** Colormap that the primary heatmapBase64 was rendered with. */
+  colormap?: string;
   /** Which model produced this prediction. Persisted in scan metadata. */
   modelKey: ModelKey;
 }
@@ -41,7 +49,7 @@ export interface ModelInfo {
 const MODELS: Record<ModelKey, ModelInfo> = {
   rp_v1: {
     key: 'rp_v1',
-    label: 'RetinaPilot v1',
+    label: 'AEYE v1',
     description: 'Calibrated EfficientNet-B4 with Ben-Graham preprocessing',
     url: process.env.EXPO_PUBLIC_DR_API_URL,
     apiKey: process.env.EXPO_PUBLIC_DR_API_KEY,
@@ -138,7 +146,7 @@ export async function predictFundus(
     throw new Error(body?.detail || `${model.label} failed (HTTP ${response.status})`);
   }
 
-  // Normalize across backend variants. Confidence may come as 0..1 (RetinaPilot)
+  // Normalize across backend variants. Confidence may come as 0..1 (AEYE)
   // or 0..100 (partner). Heatmap field name varies. Calibration metadata may
   // be absent.
   const rawConfidence = Number(body.confidence);
@@ -150,6 +158,19 @@ export async function predictFundus(
         ? body.heatmap
         : undefined;
 
+  // Newer AEYE builds return a dict of {colormap: base64Png} so the
+  // Results screen can offer a Turbo/Inferno toggle without re-running
+  // inference. Older builds (and partner) only return heatmap_b64 — fall
+  // back to that as a single-entry map below.
+  let heatmapsBase64: Record<string, string> | undefined;
+  if (body.heatmaps_b64 && typeof body.heatmaps_b64 === 'object') {
+    heatmapsBase64 = {};
+    for (const [k, v] of Object.entries(body.heatmaps_b64)) {
+      if (typeof v === 'string' && v.length > 0) heatmapsBase64[k.toLowerCase()] = v;
+    }
+    if (Object.keys(heatmapsBase64).length === 0) heatmapsBase64 = undefined;
+  }
+
   return {
     classId: Number(body.class_id),
     className: String(body.class_name),
@@ -158,6 +179,60 @@ export async function predictFundus(
     calibrated: !!body.calibrated,
     temperatureUsed: Number(body.temperature_used ?? 1),
     heatmapBase64: heatmap,
+    heatmapsBase64,
+    colormap: typeof body.colormap === 'string' ? body.colormap : undefined,
     modelKey,
   };
+}
+
+const RECOLOR_TIMEOUT_MS = 30_000;
+
+/**
+ * Single-pass Grad-CAM recolor (~300 ms). Downloads the stored fundus image
+ * to a temp file, POSTs it to /recolor with the chosen colormap, returns the
+ * heatmap as a base64 PNG string (no data: prefix).
+ */
+export async function recolorFundus(
+  originalImageUrl: string,
+  colormap: string,
+): Promise<string> {
+  const model = MODELS['rp_v1'];
+  if (!model.url) throw new Error('AEYE URL not configured');
+
+  // Download the stored fundus image to a temp file so it can be POSTed as multipart.
+  const tempUri = `${FileSystem.cacheDirectory}recolor_${Date.now()}.jpg`;
+  await FileSystem.downloadAsync(originalImageUrl, tempUri);
+
+  const form = new FormData();
+  form.append('file', { uri: tempUri, name: 'fundus.jpg', type: 'image/jpeg' } as unknown as Blob);
+  form.append('colormap', colormap);
+
+  const headers: Record<string, string> = {};
+  if (model.apiKey) headers['x-api-key'] = model.apiKey;
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), RECOLOR_TIMEOUT_MS);
+
+  let response: Response;
+  try {
+    response = await fetch(`${model.url.replace(/\/$/, '')}/recolor`, {
+      method: 'POST',
+      body: form,
+      headers,
+      signal: controller.signal,
+    });
+  } catch (err: any) {
+    if (err?.name === 'AbortError') throw new Error('Recolor timed out');
+    throw new Error(`Could not reach recolor endpoint: ${err?.message ?? 'network error'}`);
+  } finally {
+    clearTimeout(timer);
+    FileSystem.deleteAsync(tempUri, { idempotent: true }).catch(() => {});
+  }
+
+  let body: any;
+  try { body = await response.json(); } catch {
+    throw new Error(`Recolor returned non-JSON (HTTP ${response.status})`);
+  }
+  if (!response.ok) throw new Error(body?.detail || `Recolor failed (HTTP ${response.status})`);
+  return body.heatmap_b64 as string;
 }

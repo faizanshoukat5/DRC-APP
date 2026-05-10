@@ -40,7 +40,7 @@ export default function PendingDoctorScreen() {
             You're almost in
           </Text>
           <Text className="text-sm text-muted-foreground mt-1 text-center">
-            Welcome to RetinaPilot, Dr. {user?.name?.split(' ')[0] || 'Doctor'}
+            Welcome to AEYE, Dr. {user?.name?.split(' ')[0] || 'Doctor'}
           </Text>
         </View>
 
@@ -110,7 +110,7 @@ export default function PendingDoctorScreen() {
                 icon="hourglass"
                 color="#d97706"
                 title="Admin review"
-                description="A RetinaPilot admin verifies your license and credentials."
+                description="A AEYE admin verifies your license and credentials."
               />
               <NextStep
                 icon="notifications-outline"

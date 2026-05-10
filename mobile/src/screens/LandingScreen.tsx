@@ -41,7 +41,7 @@ export default function LandingScreen() {
               style={styles.logoImage}
             />
           </View>
-          <Text className="text-3xl font-bold text-foreground tracking-tight">RetinaPilot</Text>
+          <Text className="text-3xl font-bold text-foreground tracking-tight">AEYE</Text>
           <Text className="text-sm text-muted-foreground mt-1 text-center">
             AI-guided diabetic retinopathy screening
           </Text>
@@ -167,7 +167,7 @@ export default function LandingScreen() {
         {/* Footer disclaimer */}
         <View className="px-4 mt-8">
           <Text className="text-xs text-center text-muted-foreground leading-relaxed">
-            RetinaPilot is a screening assistant. Results do not replace
+            AEYE is a screening assistant. Results do not replace
             clinical diagnosis by a qualified ophthalmologist.
           </Text>
         </View>

@@ -13,7 +13,7 @@ interface AppHeaderProps {
 }
 
 export default function AppHeader({
-  title = 'RetinaPilot',
+  title = 'AEYE',
   subtitle = 'AI-guided retinal screening',
   roleTag,
   transition = 'slide',

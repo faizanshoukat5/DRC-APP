@@ -19,7 +19,9 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../co
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { Ionicons } from '@expo/vector-icons';
-import { getScan, updateScanDoctorNotes, getProfileName, type Scan } from '../lib/api';
+import { getScan, getScans, updateScanDoctorNotes, getProfileName, type Scan } from '../lib/api';
+import { getProgressionStatus } from '../lib/progression';
+import { recolorFundus } from '../lib/mlApi';
 import { useAuthContext } from '../contexts/AuthContext';
 import { formatDateTime, getSeverityBadgeVariant } from '../lib/utils';
 import type { RootStackParamList } from '../navigation/AppNavigator';
@@ -43,6 +45,10 @@ export default function ResultsScreen() {
   const [isSavingNotes, setIsSavingNotes] = useState(false);
   const [isSharingReport, setIsSharingReport] = useState(false);
   const [imageView, setImageView] = useState<'original' | 'heatmap'>('original');
+  const [selectedColormap, setSelectedColormap] = useState<string | null>(null);
+  const [colormapCache, setColormapCache] = useState<Record<string, string>>({});
+  const [colormapLoading, setColormapLoading] = useState(false);
+  const [previousScan, setPreviousScan] = useState<Scan | null>(null);
 
   useEffect(() => {
     const loadScan = async () => {
@@ -68,6 +74,19 @@ export default function ResultsScreen() {
 
     loadScan();
   }, [scanId]);
+
+  // After the main scan loads, fetch all scans for this patient to find the prior visit.
+  useEffect(() => {
+    if (!scan?.patientId) return;
+    setPreviousScan(null);
+    getScans(scan.patientId)
+      .then((all) => {
+        // all is ordered newest-first from the query
+        const idx = all.findIndex((s) => s.id === scan.id);
+        setPreviousScan(idx >= 0 ? (all[idx + 1] ?? null) : null);
+      })
+      .catch(() => {});
+  }, [scan?.id, scan?.patientId]);
 
   const handleSaveNotes = async () => {
     if (!scan) return;
@@ -131,7 +150,7 @@ export default function ResultsScreen() {
 
       await Sharing.shareAsync(finalUri, {
         mimeType: 'application/pdf',
-        dialogTitle: 'RetinaPilot report',
+        dialogTitle: 'AEYE report',
         UTI: 'com.adobe.pdf',
       });
     } catch (err: any) {
@@ -180,8 +199,53 @@ export default function ResultsScreen() {
   const isLowConfidence = confidence !== null && confidence < 60;
   const isFailed = scan.inferenceMode === 'failed';
   const hasDistinctHeatmap = !!scan.heatmapUrl && scan.heatmapUrl !== scan.imageUrl;
+
+  const progression = previousScan
+    ? getProgressionStatus(
+        scan.rawClassId,
+        scan.severity ?? '',
+        previousScan.rawClassId,
+        previousScan.severity ?? '',
+      )
+    : null;
+
+  // Build a colormap → URL map from pre-rendered storage URLs (Turbo + Inferno).
+  const heatmapUrlMap: Record<string, string> = (() => {
+    if (scan.heatmapUrls && Object.keys(scan.heatmapUrls).length > 0) return scan.heatmapUrls;
+    if (scan.heatmapUrl) return { [scan.colormap || 'turbo']: scan.heatmapUrl };
+    return {};
+  })();
+
+  const ALL_COLORMAPS = ['turbo', 'inferno', 'magma', 'viridis', 'jet'] as const;
+  const COLORMAP_LABELS: Record<string, string> = {
+    turbo: 'Turbo', inferno: 'Inferno', magma: 'Magma', viridis: 'Viridis', jet: 'Jet',
+  };
+
+  const defaultColormap = (scan.colormap && heatmapUrlMap[scan.colormap] ? scan.colormap : Object.keys(heatmapUrlMap)[0]) ?? 'turbo';
+  const activeColormap =
+    selectedColormap && (heatmapUrlMap[selectedColormap] || colormapCache[selectedColormap])
+      ? selectedColormap
+      : defaultColormap;
+  const activeHeatmapUrl =
+    colormapCache[activeColormap] ?? heatmapUrlMap[activeColormap] ?? scan.heatmapUrl;
+  const showColormapToggle = imageView === 'heatmap' && hasDistinctHeatmap && scan.modelKey === 'rp_v1';
+
+  const handleColormapChange = async (cm: string) => {
+    setSelectedColormap(cm);
+    if (heatmapUrlMap[cm] || colormapCache[cm]) return;
+    setColormapLoading(true);
+    try {
+      const b64 = await recolorFundus(scan.imageUrl, cm);
+      setColormapCache((prev) => ({ ...prev, [cm]: `data:image/png;base64,${b64}` }));
+    } catch (err: any) {
+      console.error('Recolor failed:', err);
+    } finally {
+      setColormapLoading(false);
+    }
+  };
+
   const displayUri =
-    imageView === 'heatmap' && hasDistinctHeatmap ? scan.heatmapUrl : scan.imageUrl;
+    imageView === 'heatmap' && hasDistinctHeatmap ? activeHeatmapUrl : scan.imageUrl;
 
   return (
     <SafeAreaView className="flex-1 bg-background">
@@ -202,44 +266,80 @@ export default function ResultsScreen() {
         {/* Image with optional Original/Heatmap toggle */}
         <View className="mt-6 px-4">
           {hasDistinctHeatmap && (
-            <View className="mb-3 flex-row self-start rounded-full bg-muted p-1">
-              <TouchableOpacity
-                onPress={() => setImageView('original')}
-                className={`rounded-full px-4 py-1.5 ${
-                  imageView === 'original' ? 'bg-primary/10' : ''
-                }`}
-              >
-                <Text
-                  className={`text-xs font-medium ${
-                    imageView === 'original' ? 'text-primary' : 'text-muted-foreground'
+            <View className="mb-3 flex-row flex-wrap items-center gap-2">
+              <View className="flex-row rounded-full bg-muted p-1">
+                <TouchableOpacity
+                  onPress={() => setImageView('original')}
+                  className={`rounded-full px-4 py-1.5 ${
+                    imageView === 'original' ? 'bg-primary/10' : ''
                   }`}
                 >
-                  Original
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => setImageView('heatmap')}
-                className={`rounded-full px-4 py-1.5 ${
-                  imageView === 'heatmap' ? 'bg-primary/10' : ''
-                }`}
-              >
-                <Text
-                  className={`text-xs font-medium ${
-                    imageView === 'heatmap' ? 'text-primary' : 'text-muted-foreground'
+                  <Text
+                    className={`text-xs font-medium ${
+                      imageView === 'original' ? 'text-primary' : 'text-muted-foreground'
+                    }`}
+                  >
+                    Original
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => setImageView('heatmap')}
+                  className={`rounded-full px-4 py-1.5 ${
+                    imageView === 'heatmap' ? 'bg-primary/10' : ''
                   }`}
                 >
-                  Heatmap
-                </Text>
-              </TouchableOpacity>
+                  <Text
+                    className={`text-xs font-medium ${
+                      imageView === 'heatmap' ? 'text-primary' : 'text-muted-foreground'
+                    }`}
+                  >
+                    Heatmap
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              {showColormapToggle && (
+                <View className="flex-row flex-wrap gap-1 rounded-full bg-muted p-1">
+                  {ALL_COLORMAPS.map((cm) => {
+                    const active = activeColormap === cm;
+                    const isLoadingThis = colormapLoading && active && !heatmapUrlMap[cm] && !colormapCache[cm];
+                    return (
+                      <TouchableOpacity
+                        key={cm}
+                        onPress={() => handleColormapChange(cm)}
+                        disabled={colormapLoading && !active}
+                        className={`rounded-full px-3 py-1.5 ${active ? 'bg-primary/10' : ''}`}
+                      >
+                        <Text
+                          className={`text-xs font-medium ${
+                            active ? 'text-primary' : 'text-muted-foreground'
+                          } ${colormapLoading && !active ? 'opacity-40' : ''}`}
+                        >
+                          {isLoadingThis ? '…' : COLORMAP_LABELS[cm]}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              )}
             </View>
           )}
 
           {displayUri ? (
-            <Image
-              source={{ uri: displayUri }}
-              className="h-64 w-full rounded-xl"
-              resizeMode="cover"
-            />
+            <View className="relative h-64 w-full">
+              <Image
+                source={{ uri: displayUri }}
+                className={`h-64 w-full rounded-xl ${colormapLoading ? 'opacity-40' : 'opacity-100'}`}
+                resizeMode="cover"
+              />
+              {colormapLoading && (
+                <View className="absolute inset-0 items-center justify-center">
+                  <View className="rounded-full bg-black/60 px-4 py-2">
+                    <ActivityIndicator size="small" color="#fff" />
+                  </View>
+                </View>
+              )}
+            </View>
           ) : (
             <View className="h-64 w-full items-center justify-center rounded-xl bg-muted">
               <Ionicons name="eye" size={64} color="#9ca3af" />
@@ -253,6 +353,38 @@ export default function ResultsScreen() {
             </Text>
           )}
         </View>
+
+        {/* Progression alert */}
+        {progression?.status === 'worsened' && (
+          <View className="mt-4 px-4">
+            <View className="flex-row items-start rounded-lg border border-red-200 bg-red-50 p-3">
+              <Ionicons name="trending-up" size={20} color="#dc2626" />
+              <View className="ml-2 flex-1">
+                <Text className="text-sm font-semibold text-red-900">
+                  DR Worsened: {progression.from} → {progression.to}
+                </Text>
+                <Text className="mt-0.5 text-xs text-red-700">
+                  Increased by {progression.deltaSteps} class step{progression.deltaSteps > 1 ? 's' : ''} since last visit
+                </Text>
+              </View>
+            </View>
+          </View>
+        )}
+        {progression?.status === 'improved' && (
+          <View className="mt-4 px-4">
+            <View className="flex-row items-start rounded-lg border border-green-200 bg-green-50 p-3">
+              <Ionicons name="trending-down" size={20} color="#16a34a" />
+              <View className="ml-2 flex-1">
+                <Text className="text-sm font-semibold text-green-900">
+                  DR Improved: {progression.from} → {progression.to}
+                </Text>
+                <Text className="mt-0.5 text-xs text-green-700">
+                  Decreased by {progression.deltaSteps} class step{progression.deltaSteps > 1 ? 's' : ''} since last visit
+                </Text>
+              </View>
+            </View>
+          </View>
+        )}
 
         {/* Diagnosis Card */}
         <View className="mt-6 px-4">
@@ -611,8 +743,8 @@ function RecommendationItem({
 }
 
 function buildReportFilename(scan: Scan, patientName: string | null): string {
-  // Format: RetinaPilot_<PatientName>_<Diagnosis>_<YYYY-MM-DD>_<scanIdShort>.pdf
-  // Example: RetinaPilot_Jane-Doe_Mild-DR_2026-05-09_a1b2c3d4.pdf
+  // Format: AEYE_<PatientName>_<Diagnosis>_<YYYY-MM-DD>_<scanIdShort>.pdf
+  // Example: AEYE_Jane-Doe_Mild-DR_2026-05-09_a1b2c3d4.pdf
   // Goal: short enough to fit on one line in share sheets, sortable by date
   // when downloaded into a folder, unique per scan so re-shares don't
   // collide, and immediately tells you whose report it is when archived.
@@ -632,8 +764,8 @@ function buildReportFilename(scan: Scan, patientName: string | null): string {
   const idShort = String(scan.id).replace(/-/g, '').slice(0, 8);
 
   // Skip the patient segment cleanly if the profile fetch failed so we
-  // don't end up with `RetinaPilot__Mild-DR_...` (double underscore).
-  const segments = ['RetinaPilot', namePart, diagnosis, dateStr, idShort].filter(Boolean);
+  // don't end up with `AEYE__Mild-DR_...` (double underscore).
+  const segments = ['AEYE', namePart, diagnosis, dateStr, idShort].filter(Boolean);
   return `${segments.join('_')}.pdf`;
 }
 
@@ -759,7 +891,7 @@ function buildReportHtml(
 <body>
   <div class="header">
     <div>
-      <div class="brand">RetinaPilot</div>
+      <div class="brand">AEYE</div>
       <div class="tagline">AI-guided diabetic retinopathy screening</div>
     </div>
     <div class="meta">
@@ -783,7 +915,7 @@ function buildReportHtml(
   ${followUpBlock}
 
   <div class="footer">
-    This report was generated by RetinaPilot's AI screening system. The
+    This report was generated by AEYE's AI screening system. The
     analysis is for screening purposes only and does not constitute a
     medical diagnosis. Please consult a qualified ophthalmologist for
     diagnosis and treatment decisions.

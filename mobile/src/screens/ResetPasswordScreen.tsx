@@ -83,7 +83,7 @@ export default function ResetPasswordScreen() {
               <Text className="text-sm text-muted-foreground mt-1 text-center">
                 {success
                   ? 'You can now sign in with your new password.'
-                  : 'Choose a strong password to secure your RetinaPilot account.'}
+                  : 'Choose a strong password to secure your AEYE account.'}
               </Text>
             </View>
 

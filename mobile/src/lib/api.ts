@@ -22,6 +22,12 @@ export interface Scan {
   createdAt: string;
   imageUrl: string;
   heatmapUrl?: string;
+  /** Multiple Grad-CAM URLs keyed by colormap name (turbo, inferno, ...).
+   *  Newer scans store this in metadata so the Results screen can offer
+   *  a Turbo/Inferno toggle without re-running inference. */
+  heatmapUrls?: Record<string, string>;
+  /** Which colormap the canonical heatmapUrl was rendered with. */
+  colormap?: string;
   diagnosis: string;
   severity: string;
   confidence: number;
@@ -31,6 +37,7 @@ export interface Scan {
   probabilities?: Record<string, number>;
   temperatureUsed?: number;
   inferenceMode?: InferenceMode;
+  rawClassId?: number;
   modelKey?: string;
   modelLabel?: string;
   followUpDueDate?: string;
@@ -47,6 +54,8 @@ function scanFromRecord(record: any): Scan {
     createdAt: record.timestamp,
     imageUrl: record.original_image_url || record.image_url,
     heatmapUrl: record.heatmap_image_url,
+    heatmapUrls: metadata.heatmapUrls,
+    colormap: metadata.colormap,
     diagnosis: record.diagnosis,
     severity: record.severity,
     confidence: record.confidence,
@@ -56,6 +65,7 @@ function scanFromRecord(record: any): Scan {
     probabilities: metadata.probabilities,
     temperatureUsed: metadata.temperatureUsed ?? metadata.temperature_used,
     inferenceMode: record.inference_mode,
+    rawClassId: typeof metadata.rawClassId === 'number' ? metadata.rawClassId : undefined,
     modelKey: metadata.modelKey,
     modelLabel: metadata.modelLabel,
     followUpDueDate: followUp.dueDate ?? undefined,
@@ -106,7 +116,7 @@ export async function getProfileName(userId: string): Promise<string | null> {
 export interface UploadScanOptions {
   onPhase?: (phase: UploadPhase) => void;
   doctorNotes?: string;
-  /** Which model to call for inference. Defaults to RetinaPilot v1. */
+  /** Which model to call for inference. Defaults to AEYE v1. */
   model?: ModelKey;
 }
 
@@ -183,26 +193,38 @@ export async function uploadScan(
   }
   const inferenceTime = Date.now() - start;
 
-  // If the backend returned a Grad-CAM PNG, upload it as a real second image
-  // alongside the original. Failure here is non-fatal — we fall back to the
-  // original URL so the scan row never gets lost.
+  // The backend now returns multiple Grad-CAM renderings (one per colormap)
+  // so the Results screen can offer a Turbo/Inferno toggle without re-running
+  // inference. Upload each variant separately and collect their public URLs
+  // into heatmapUrls keyed by colormap name. The legacy heatmapUrl stays the
+  // user's chosen colormap so the scans table column + older clients still work.
   let heatmapUrl = urlData.publicUrl;
-  if (prediction?.heatmapBase64) {
+  const heatmapUrls: Record<string, string> = {};
+  const variants =
+    prediction?.heatmapsBase64 ??
+    (prediction?.heatmapBase64
+      ? { [prediction.colormap || 'turbo']: prediction.heatmapBase64 }
+      : {});
+  const primaryColormap = prediction?.colormap || 'turbo';
+
+  for (const [cm, b64] of Object.entries(variants)) {
     try {
-      const heatmapBytes = Uint8Array.from(atob(prediction.heatmapBase64), (c) => c.charCodeAt(0));
-      const heatmapName = `${patientId}/heatmap_${Date.now()}.png`;
-      const { error: heatmapUploadError } = await supabase.storage
+      const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+      const name = `${patientId}/heatmap_${cm}_${Date.now()}.png`;
+      const { error: e } = await supabase.storage
         .from('scans')
-        .upload(heatmapName, heatmapBytes, { contentType: 'image/png', upsert: false });
-      if (!heatmapUploadError) {
-        heatmapUrl = supabase.storage.from('scans').getPublicUrl(heatmapName).data.publicUrl;
+        .upload(name, bytes, { contentType: 'image/png', upsert: false });
+      if (!e) {
+        heatmapUrls[cm] = supabase.storage.from('scans').getPublicUrl(name).data.publicUrl;
       } else {
-        console.warn('Heatmap upload failed, falling back to original:', heatmapUploadError.message);
+        console.warn(`Heatmap upload (${cm}) failed:`, e.message);
       }
     } catch (err) {
-      console.warn('Heatmap decode/upload threw, falling back to original:', err);
+      console.warn(`Heatmap decode/upload (${cm}) threw:`, err);
     }
   }
+  if (heatmapUrls[primaryColormap]) heatmapUrl = heatmapUrls[primaryColormap];
+  else if (Object.values(heatmapUrls)[0]) heatmapUrl = Object.values(heatmapUrls)[0];
 
   const versionForModel = model === 'partner' ? 'partner_efficientnet_b4' : 'efficientnet_b4_v1';
   const preprocForModel = model === 'partner' ? 'median_gamma' : 'ben_graham';
@@ -227,6 +249,8 @@ export async function uploadScan(
           rawClassId: prediction.classId,
           modelKey: prediction.modelKey,
           modelLabel: modelInfo.label,
+          colormap: prediction.colormap ?? primaryColormap,
+          heatmapUrls,
         },
         ...(trimmedNotes ? { doctor_notes: trimmedNotes } : {}),
       }

@@ -21,9 +21,9 @@ const faqCategories = [
     colorClass: 'bg-primary/10',
     questions: [
       {
-        q: 'What is RetinaPilot?',
+        q: 'What is AEYE?',
         a:
-          'RetinaPilot is an AI-guided diabetic retinopathy screening platform. It analyzes fundus (eye) images to detect signs of diabetic retinopathy, providing severity grades, calibrated confidence scores, and explainable Grad-CAM heatmaps so doctors and patients can see exactly what the model focused on.',
+          'AEYE is an AI-guided diabetic retinopathy screening platform. It analyzes fundus (eye) images to detect signs of diabetic retinopathy, providing severity grades, calibrated confidence scores, and explainable Grad-CAM heatmaps so doctors and patients can see exactly what the model focused on.',
       },
       {
         q: 'What is diabetic retinopathy?',
@@ -165,7 +165,7 @@ export default function FAQScreen() {
           </TouchableOpacity>
           <View className="flex-1">
             <Text className="text-xl font-bold text-foreground">Frequently Asked Questions</Text>
-            <Text className="text-sm text-muted-foreground">Find answers to common questions about RetinaPilot</Text>
+            <Text className="text-sm text-muted-foreground">Find answers to common questions about AEYE</Text>
           </View>
         </View>
 

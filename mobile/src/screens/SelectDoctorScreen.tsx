@@ -155,7 +155,7 @@ export default function SelectDoctorScreen() {
                   </View>
                   <View className="ml-3 flex-1">
                     <Text className="font-semibold text-sky-900">
-                      Welcome to RetinaPilot
+                      Welcome to AEYE
                     </Text>
                     <Text className="text-sm text-sky-800 mt-1 leading-relaxed">
                       Choose an approved doctor below. They'll upload and review your

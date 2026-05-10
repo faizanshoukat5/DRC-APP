@@ -23,7 +23,7 @@ type Props = {
  *   0.0s  fade-in dark gradient background
  *   0.1s  logo bubble springs in (scale 0 → 1)
  *   0.2s  two concentric scan rings start a slow continuous pulse
- *   0.7s  "RetinaPilot" wordmark slides up + fades in
+ *   0.7s  "AEYE" wordmark slides up + fades in
  *   1.1s  tagline fades in
  *   1.7s  CTA pill fades in
  *
@@ -191,7 +191,7 @@ export default function WelcomeIntro({ onDismiss }: Props) {
             marginTop: 28,
           }}
         >
-          <Text style={styles.wordmark}>RetinaPilot</Text>
+          <Text style={styles.wordmark}>AEYE</Text>
         </Animated.View>
 
         {/* Tagline */}

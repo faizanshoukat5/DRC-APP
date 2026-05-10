@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "RetinaPilot",
+    "name": "AEYE",
     "slug": "retinaai",
     "scheme": "retinapilot",
     "version": "1.0.0",
@@ -43,8 +43,8 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "Allow RetinaPilot to access your photos for uploading fundus images.",
-          "cameraPermission": "Allow RetinaPilot to use the camera to capture fundus images."
+          "photosPermission": "Allow AEYE to access your photos for uploading fundus images.",
+          "cameraPermission": "Allow AEYE to use the camera to capture fundus images."
         }
       ],
       "expo-video",

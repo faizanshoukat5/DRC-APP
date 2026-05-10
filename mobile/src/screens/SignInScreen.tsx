@@ -89,7 +89,7 @@ export default function SignInScreen() {
                 Welcome back
               </Text>
               <Text className="text-sm text-muted-foreground mt-1">
-                Sign in to continue to RetinaPilot
+                Sign in to continue to AEYE
               </Text>
             </View>
 
@@ -159,7 +159,7 @@ export default function SignInScreen() {
             {/* Sign-up link */}
             <View className="mt-6 flex-row items-center justify-center">
               <Text className="text-sm text-muted-foreground">
-                New to RetinaPilot?{' '}
+                New to AEYE?{' '}
               </Text>
               <TouchableOpacity onPress={() => navigation.navigate('SignUp')} hitSlop={6}>
                 <Text className="text-sm font-semibold text-primary">Create account</Text>

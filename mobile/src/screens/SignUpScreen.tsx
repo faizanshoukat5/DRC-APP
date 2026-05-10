@@ -113,7 +113,7 @@ export default function SignUpScreen() {
             Create your account
           </Text>
           <Text className="text-sm text-muted-foreground mt-1 text-center">
-            Join RetinaPilot — AI-guided retinal screening
+            Join AEYE — AI-guided retinal screening
           </Text>
         </View>
 
