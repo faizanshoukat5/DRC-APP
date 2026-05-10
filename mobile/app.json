@@ -7,7 +7,6 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": false,
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
@@ -48,7 +47,8 @@
           "cameraPermission": "Allow RetinaPilot to use the camera to capture fundus images."
         }
       ],
-      "expo-video"
+      "expo-video",
+      "@react-native-community/datetimepicker"
     ],
     "extra": {
       "eas": {

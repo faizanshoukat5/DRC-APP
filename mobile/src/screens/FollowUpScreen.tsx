@@ -12,6 +12,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
@@ -38,7 +39,8 @@ export default function FollowUpScreen() {
   const [scan, setScan] = useState<Scan | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [dueDate, setDueDate] = useState('');
+  const [dueDate, setDueDate] = useState(''); // YYYY-MM-DD; canonical wire format
+  const [showDatePicker, setShowDatePicker] = useState(false);
   const [notes, setNotes] = useState('');
   const [status, setStatus] = useState<FollowUpInput['status']>('needed');
 
@@ -73,9 +75,36 @@ export default function FollowUpScreen() {
     }
   };
 
-  const formatDateForDisplay = (dateString: string) => {
-    if (!dateString) return 'YYYY-MM-DD';
-    return dateString;
+  // YYYY-MM-DD ↔ Date conversions. We use UTC noon to dodge timezone
+  // boundary issues where toISOString() could roll back to the previous day
+  // for users in negative offsets.
+  const dueDateAsDate = (() => {
+    if (!dueDate) return new Date();
+    const parsed = new Date(`${dueDate}T12:00:00`);
+    return isNaN(parsed.getTime()) ? new Date() : parsed;
+  })();
+
+  const formatDueDateLabel = (iso: string) => {
+    if (!iso) return 'Pick a date';
+    const d = new Date(`${iso}T12:00:00`);
+    if (isNaN(d.getTime())) return iso;
+    return d.toLocaleDateString(undefined, {
+      weekday: 'short',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    });
+  };
+
+  const handleDateChange = (event: DateTimePickerEvent, selected?: Date) => {
+    // Android closes the picker on any event; iOS keeps it inline.
+    if (Platform.OS !== 'ios') setShowDatePicker(false);
+    if (event.type === 'dismissed') return;
+    if (!selected) return;
+    const yyyy = selected.getFullYear();
+    const mm = String(selected.getMonth() + 1).padStart(2, '0');
+    const dd = String(selected.getDate()).padStart(2, '0');
+    setDueDate(`${yyyy}-${mm}-${dd}`);
   };
 
   if (isLoading) {
@@ -176,14 +205,60 @@ export default function FollowUpScreen() {
               </View>
 
               <Text className="mb-2 text-sm font-medium text-foreground">Due date</Text>
-              <TextInput
-                value={dueDate}
-                onChangeText={setDueDate}
-                editable={isDoctor && !isSaving}
-                placeholder="YYYY-MM-DD"
-                placeholderTextColor="#94a3b8"
-                className="mb-4 rounded-lg border border-input bg-background px-3 py-3 text-foreground"
-              />
+              <View className="mb-4 flex-row items-center">
+                <TouchableOpacity
+                  onPress={() => isDoctor && !isSaving && setShowDatePicker(true)}
+                  disabled={!isDoctor || isSaving}
+                  className="flex-1 flex-row items-center justify-between rounded-lg border border-input bg-background px-3 py-3"
+                >
+                  <View className="flex-row items-center">
+                    <Ionicons
+                      name="calendar-outline"
+                      size={18}
+                      color={dueDate ? '#0f172a' : '#94a3b8'}
+                    />
+                    <Text
+                      className="ml-2 text-base"
+                      style={{ color: dueDate ? '#0f172a' : '#94a3b8' }}
+                    >
+                      {formatDueDateLabel(dueDate)}
+                    </Text>
+                  </View>
+                  {isDoctor && !isSaving && (
+                    <Ionicons name="chevron-down" size={18} color="#94a3b8" />
+                  )}
+                </TouchableOpacity>
+                {dueDate && isDoctor && !isSaving && (
+                  <TouchableOpacity
+                    onPress={() => setDueDate('')}
+                    className="ml-2 rounded-lg p-2"
+                    hitSlop={8}
+                  >
+                    <Ionicons name="close-circle" size={20} color="#94a3b8" />
+                  </TouchableOpacity>
+                )}
+              </View>
+
+              {showDatePicker && (
+                <DateTimePicker
+                  value={dueDateAsDate}
+                  mode="date"
+                  display={Platform.OS === 'ios' ? 'inline' : 'default'}
+                  minimumDate={new Date()}
+                  onChange={handleDateChange}
+                />
+              )}
+
+              {Platform.OS === 'ios' && showDatePicker && (
+                <View className="mb-4 flex-row justify-end">
+                  <TouchableOpacity
+                    onPress={() => setShowDatePicker(false)}
+                    className="rounded-lg bg-primary px-4 py-2"
+                  >
+                    <Text className="font-medium text-white">Done</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
 
               <Text className="mb-2 text-sm font-medium text-foreground">Notes</Text>
               <TextInput

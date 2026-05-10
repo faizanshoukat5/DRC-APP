@@ -251,7 +251,10 @@ export async function uploadScan(
 
   const { data: scan, error: insertError } = await supabase
     .from('scans')
-    .insert(insertPayload)
+    // Newer Supabase generics narrow `severity` to a literal union; our
+    // failed branch uses 'unknown' which the client schema doesn't list.
+    // Casting to any here — runtime schema is the source of truth.
+    .insert(insertPayload as any)
     .select()
     .single();
   if (insertError) throw new Error(insertError.message);
