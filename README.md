@@ -1,86 +1,60 @@
-# AEYE — AI-Guided Retinal Screening Platform
+# AEYE — AI-Guided Retinal Screening (Mobile App)
 
-AEYE is a clinical platform for diabetic retinopathy (DR) screening. A calibrated EfficientNet-B4 model grades fundus photographs across five severity levels (No DR → Proliferative). Results include Grad-CAM heatmaps, progression alerts comparing against prior visits, PDF clinical reports, and a multi-role authentication system covering patients, doctors, and administrators.
+AEYE is an Expo / React Native mobile application for diabetic retinopathy (DR) screening. Doctors capture or upload fundus photographs from the device, an EfficientNet-B4 model hosted on Hugging Face Spaces grades severity across five levels (No DR → Proliferative), and the results screen displays Grad-CAM heatmaps with a 5-colormap toggle, progression alerts vs. the patient's prior visit, and downloadable PDF reports.
 
-The repository is a monorepo containing three independently runnable components:
-
-| Component | Path | Purpose |
-|---|---|---|
-| Web frontend + server | `client/` + `server/` | React/Vite + Express; doctor/patient/admin dashboards |
-| Mobile app | `mobile/` | Expo React Native; mirrors web workflows for on-the-go access |
-| ML backend | `ml-backend/` | FastAPI; EfficientNet-B4 inference + Grad-CAM |
+> The companion web platform lives in a separate repo: **[DRC_web](https://github.com/faizanshoukat5/DRC_web)**.
+> The ML inference service is hosted on **[Hugging Face Spaces](https://huggingface.co/spaces/faizan055/dr-classifier)** — no local model setup required.
 
 ---
 
 ## Features
 
-- **DR grading** — 5-class severity (No DR / Mild / Moderate / Severe / Proliferative) via temperature-calibrated EfficientNet-B4
-- **Grad-CAM heatmaps** — 5 colormaps (Turbo, Inferno, Jet, Viridis, Magma); Turbo + Inferno pre-rendered at upload time, rest fetched on-demand
+- **DR grading** — 5-class severity (No DR / Mild / Moderate / Severe / Proliferative) via calibrated EfficientNet-B4
+- **Grad-CAM heatmaps** — 5 colormaps (Turbo, Inferno, Jet, Viridis, Magma); Turbo + Inferno pre-rendered at upload, Magma / Viridis / Jet fetched on-demand via `/recolor` and cached client-side
 - **Progression alerts** — rule-based red/green banner when DR worsens or improves vs. the patient's previous scan
-- **Scan history trend badges** — Worsened / Improved / Stable / New pill per row in history
 - **Multi-role auth** — Patient, Doctor, Admin via Supabase magic-link email
-- **PDF reports** — downloadable per-scan clinical summary
+- **PDF reports** — generated with `expo-print`, shared via `expo-sharing`
 - **Follow-up scheduling** — doctors set follow-up dates; patients see reminders
-- **Dual-model support** — AEYE v1 (calibrated) + optional partner model with side-by-side picker
+- **Dual-model support** — AEYE v1 (calibrated) + optional partner model; model picker surfaces when both URLs are configured
+- **Camera + gallery uploads** — `expo-image-picker` for capture or library selection
 
 ---
 
 ## Tech Stack
 
-**Web**
-
-| Layer | Technology |
-|---|---|
-| Frontend | React 18, TypeScript, Vite, Tailwind CSS, shadcn/ui, Wouter |
-| Backend | Node.js 20, Express (ESM), TypeScript |
-| Database / Auth | Supabase (Postgres + RLS + Magic-Link) |
-| ORM / Migrations | Drizzle ORM |
-| PDF | jsPDF |
-
-**Mobile**
-
 | Layer | Technology |
 |---|---|
 | Framework | Expo SDK 52, React Native, TypeScript |
-| Styling | NativeWind (Tailwind for React Native) |
-| Navigation | React Navigation v7 (stack + bottom tabs) |
-| Auth | Supabase JS client |
-
-**ML Backend**
-
-| | |
-|---|---|
-| Runtime | Python 3.11, FastAPI, PyTorch |
-| Model | EfficientNet-B4, Ben-Graham preprocessing, temperature scaling |
-| Explainability | Grad-CAM (pytorch-grad-cam) |
-| Hosting | Hugging Face Spaces (or any Docker host) |
+| Styling | NativeWind (Tailwind CSS for React Native) |
+| Navigation | React Navigation v7 (native stack + bottom tabs) |
+| Auth + DB | Supabase JS client (`@supabase/supabase-js`) |
+| Storage | Supabase Storage (fundus image bucket) |
+| ML backend | FastAPI on Hugging Face Spaces (EfficientNet-B4 + Grad-CAM) |
+| PDF | `expo-print` + `expo-sharing` |
+| Image picker | `expo-image-picker`, `expo-file-system` |
 
 ---
 
-## Repository Structure
+## Project Structure
 
 ```
-├── client/               # React + Vite frontend
-│   └── src/
-│       ├── pages/        # Route components (dashboards, results, history, …)
-│       ├── components/   # Shared UI (web-layout, shadcn/ui primitives)
-│       ├── hooks/        # useAuth, …
-│       └── lib/          # api.ts, progression.ts, supabaseClient.ts
-├── server/               # Express backend
-│   ├── index.ts          # Entry point
-│   ├── routes.ts         # REST endpoints
-│   ├── mlClient.ts       # ML proxy (AEYE v1 + partner)
-│   └── supabaseClient.ts # Admin client
-├── mobile/               # Expo React Native app
-│   └── src/
-│       ├── screens/      # ResultsScreen, HistoryScreen, AnalysisScreen, …
-│       ├── lib/          # api.ts, mlApi.ts, progression.ts
-│       └── navigation/   # Stack + tab navigators
-├── ml-backend/           # FastAPI inference service
-│   ├── app.py            # /predict + /recolor endpoints
-│   └── README.md         # Model setup instructions
-├── shared/               # Types shared by client + server
-└── supabase/             # Drizzle config + SQL migrations
+mobile/
+├── App.tsx                  # Root component
+├── app.json                 # Expo config (name, slug, permissions, icons)
+├── eas.json                 # EAS Build profiles
+├── index.ts                 # Entry point
+├── assets/                  # Icons, splash, intro video
+└── src/
+    ├── screens/             # ResultsScreen, AnalysisScreen, HistoryScreen, …
+    ├── components/          # AppHeader, WelcomeIntro, ui/* primitives
+    ├── navigation/          # AppNavigator (role-based stack + tabs)
+    ├── contexts/            # AuthContext
+    ├── lib/
+    │   ├── api.ts           # Supabase data layer (scans, profiles, follow-ups)
+    │   ├── mlApi.ts         # ML backend client (/predict, /recolor)
+    │   ├── progression.ts   # Rule-based DR progression utility
+    │   └── supabase.ts      # Supabase client init
+    └── hooks/
 ```
 
 ---
@@ -88,131 +62,86 @@ The repository is a monorepo containing three independently runnable components:
 ## Prerequisites
 
 - Node.js 20+
-- Expo CLI: `npm install -g expo-cli` (or use `npx expo`)
-- A [Supabase](https://supabase.com) project
-- ML backend URL (Hugging Face Space or local FastAPI)
+- Expo Go app on a physical device, or Android Studio / Xcode for emulators
+- A [Supabase](https://supabase.com) project (same project as the web app, if both are deployed)
 
 ---
 
-## Web Setup
+## Setup
 
-### 1. Install dependencies
+### 1. Clone and install
 
 ```bash
+git clone https://github.com/faizanshoukat5/DRC-APP.git
+cd DRC-APP/mobile
 npm install
 ```
 
 ### 2. Environment variables
 
-Copy `.env.example` and fill in your values:
-
-```bash
-cp .env.example .env
-```
-
-**`.env`** (Vite client vars):
-```env
-VITE_SUPABASE_URL=https://your-project.supabase.co
-VITE_SUPABASE_ANON_KEY=your-anon-key
-```
-
-**`.env.server`** (Express server vars):
-```env
-SUPABASE_URL=https://your-project.supabase.co
-SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
-DATABASE_URL=postgres://user:password@host:5432/database
-PORT=3000
-
-# AEYE ML backend
-DR_API_URL=https://faizan055-dr-classifier.hf.space
-DR_API_KEY=hf_xxxxxxxxxxxxxxxxxxxx
-
-# Optional partner model (leave unset to hide model picker)
-DR_API_URL_PARTNER=https://hissanzahir-dr-detection-api.hf.space
-```
-
-> Never commit your `SUPABASE_SERVICE_ROLE_KEY`. It bypasses RLS.
-
-### 3. Apply database schema
-
-```bash
-npm run db:push
-```
-
-### 4. Start development server
-
-```bash
-npm run dev        # Express + Vite HMR on the same port
-```
-
-Open `http://localhost:3000`.
-
-### 5. Production build
-
-```bash
-npm run build
-npm start
-```
-
----
-
-## Mobile Setup
-
-```bash
-cd mobile
-npm install
-```
-
-### Environment variables
-
 Create `mobile/.env`:
+
 ```env
+# Supabase
 EXPO_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 EXPO_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 
-# ML backend (same endpoints as web)
+# AEYE ML backend (Hugging Face Space)
 EXPO_PUBLIC_DR_API_URL=https://faizan055-dr-classifier.hf.space
 EXPO_PUBLIC_DR_API_KEY=hf_xxxxxxxxxxxxxxxxxxxx
 
-# Optional partner model
+# Optional: partner model — leave unset to hide the model picker
 EXPO_PUBLIC_DR_API_URL_PARTNER=https://hissanzahir-dr-detection-api.hf.space
 ```
 
-### Start Expo dev server
+All Expo-public envs must be prefixed with `EXPO_PUBLIC_` to be inlined into the JS bundle.
+
+### 3. Run on a device or simulator
 
 ```bash
 npx expo start
 ```
 
-Scan the QR code with **Expo Go** (iOS/Android), or press `a` for Android emulator / `i` for iOS simulator.
+Then either:
+- Scan the QR code with **Expo Go** (iOS / Android)
+- Press `a` to launch on Android emulator
+- Press `i` to launch on iOS simulator
+- Press `w` to open in web (limited compatibility)
 
-To run directly on a connected Android device:
+For a fully native build on a connected Android device (no Expo Go needed):
+
 ```bash
 npx expo run:android
 ```
 
 ---
 
-## Supabase Configuration
+## ML Backend
 
-1. Create a project at [supabase.com](https://supabase.com).
-2. Copy **Project URL** + **service role key** to `.env.server`.
-3. Copy **anon/public key** to `.env` and `mobile/.env`.
-4. Run `npm run db:push` to apply the schema.
-5. In **Authentication → URL Configuration**, add your deployed domain to *Redirect URLs* so magic-link emails work in production (e.g. `https://yourdomain.com/**`).
+The mobile app talks to a FastAPI service hosted on Hugging Face Spaces. No local setup is required — the Space is publicly accessible.
+
+**Endpoints used by `mobile/src/lib/mlApi.ts`:**
+
+| Endpoint | Purpose |
+|---|---|
+| `POST /predict` | Upload multipart `file`; returns `class_id`, `class_name`, `confidence`, `probabilities`, `heatmaps_b64` (Turbo + Inferno pre-rendered) |
+| `POST /recolor` | Multipart `file` + `colormap` field; returns `heatmap_b64` for Magma / Viridis / Jet on demand |
+
+**Default Space:** `https://faizan055-dr-classifier.hf.space`
+**Source + weights:** [huggingface.co/spaces/faizan055/dr-classifier](https://huggingface.co/spaces/faizan055/dr-classifier)
+
+To point the app at a different deployment, override `EXPO_PUBLIC_DR_API_URL` in `mobile/.env`.
 
 ---
 
-## ML Backend
+## Supabase Configuration
 
-The server proxies fundus images to a FastAPI service. It must expose:
+1. Create a project at [supabase.com](https://supabase.com).
+2. Copy the **Project URL** and **anon/public key** into `mobile/.env`.
+3. Apply the schema (run from the companion [DRC_web](https://github.com/faizanshoukat5/DRC_web) repo: `npm run db:push`).
+4. In **Authentication → URL Configuration**, add `aeye://` as a redirect URL for deep-link magic-link sign-in.
 
-- `POST /predict` — multipart `file`; returns `class_id`, `class_name`, `confidence`, `probabilities`, `heatmaps_b64` (colormap → base64 PNG dict)
-- `POST /recolor` — multipart `file` + `colormap`; returns `heatmap_b64`
-
-Pre-trained weights: [Hugging Face — faizan055/dr-classifier](https://huggingface.co/spaces/faizan055/dr-classifier)
-
-See `ml-backend/` for the full FastAPI implementation.
+The mobile app shares the same Supabase project as the web app — scans uploaded on either platform appear on both.
 
 ---
 
@@ -220,38 +149,40 @@ See `ml-backend/` for the full FastAPI implementation.
 
 | Role | Capabilities |
 |---|---|
-| `patient` | View own scans, follow-ups, PDF download |
-| `doctor` | Upload scans, write clinical notes, create follow-ups, view assigned patients |
-| `admin` | View all scans and user profiles, approve doctor registrations |
+| `patient` | View own scans + follow-ups, download PDFs |
+| `doctor` | Capture / upload fundus images, write clinical notes, schedule follow-ups, view assigned patients |
+| `admin` | View all scans + profiles, approve doctor registrations |
 
-New accounts default to `patient`. Doctor approval is managed by an admin via the Admin Dashboard.
+New accounts default to `patient`. Doctors must be approved by an admin (web Admin Dashboard or directly in the Supabase `profiles` table).
 
 ---
 
-## Deployment
+## Building for Production
 
-### Web (cPanel / Node.js Selector)
-
-1. Upload project to cPanel home directory.
-2. Open **Node.js Selector**, create app: entry file `dist/index.cjs`, Node 20.
-3. Set all environment variables in the Selector UI.
-4. Run `npm install && npm run build` in terminal, then restart.
-
-### Web (Railway / Render)
-
-1. Connect GitHub repo.
-2. Set environment variables in the dashboard.
-3. Build command: `npm run build`
-4. Start command: `npm start`
-
-### Mobile (EAS Build)
+### Android APK / AAB (EAS Build)
 
 ```bash
 cd mobile
-npx eas build --platform android --profile preview
+npx eas login
+npx eas build --platform android --profile preview     # APK for sideload
+npx eas build --platform android --profile production  # AAB for Play Store
 ```
 
-Configure `mobile/eas.json` with your Expo account and app credentials.
+### iOS (EAS Build — requires Apple Developer account)
+
+```bash
+npx eas build --platform ios --profile production
+```
+
+Build profiles are configured in `mobile/eas.json`.
+
+---
+
+## Companion Web Platform
+
+The full clinician dashboard, admin tools, and PDF history live on the web. Repo: **[github.com/faizanshoukat5/DRC_web](https://github.com/faizanshoukat5/DRC_web)**.
+
+Both apps share the same Supabase project and ML backend — a scan uploaded on mobile shows up instantly on the web dashboard, and vice versa.
 
 ---
 
