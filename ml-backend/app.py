@@ -328,13 +328,23 @@ def predict_bytes(image_bytes: bytes,
     finally:
         handle.remove()
 
-    overlay_rgb = _gradcam_overlay(
-        feats,
-        grads,
-        overlay_base if overlay_base is not None else pre_rgb,
-        colormap=colormap,
-    )
-    heatmap_b64 = _encode_png_b64(overlay_rgb)
+    # Render all registered colormaps from the same CAM so the Results page
+    # can offer a full palette toggle without re-running inference.
+    # Cost is cheap — feats/grads are already on hand; each colormap is just
+    # cv2.applyColorMap + alpha blend (~50 ms on CPU).
+    base_for_overlay = overlay_base if overlay_base is not None else pre_rgb
+    requested_cm = colormap.lower() if colormap.lower() in _COLORMAPS else _DEFAULT_COLORMAP
+    colormaps_to_render = set(_COLORMAPS.keys())  # turbo, inferno, jet, viridis, magma
+
+    heatmaps_b64: dict[str, str] = {}
+    for cm in colormaps_to_render:
+        overlay_rgb = _gradcam_overlay(feats, grads, base_for_overlay, colormap=cm)
+        heatmaps_b64[cm] = _encode_png_b64(overlay_rgb)
+
+    # heatmap_b64 stays the user's chosen variant for back-compat with older
+    # callers (mobile pre-toggle build, partner integrations, etc.). Newer
+    # clients should read heatmaps_b64[colormap_key].
+    primary_heatmap = heatmaps_b64[requested_cm]
 
     return {
         "class_id":         cls,
@@ -344,8 +354,9 @@ def predict_bytes(image_bytes: bytes,
         "calibrated":       calibrated,
         "temperature_used": _CALIB_T if calibrated else 1.0,
         "tta":              _TTA_ENABLED,
-        "heatmap_b64":      heatmap_b64,
-        "colormap":         colormap.lower() if colormap.lower() in _COLORMAPS else _DEFAULT_COLORMAP,
+        "heatmap_b64":      primary_heatmap,
+        "heatmaps_b64":     heatmaps_b64,
+        "colormap":         requested_cm,
     }
 
 
