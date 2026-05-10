@@ -35,7 +35,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from fastapi import Depends, FastAPI, File, Header, HTTPException, UploadFile
+from fastapi import Depends, FastAPI, File, Form, Header, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from PIL import Image
 from torchvision import transforms
@@ -146,11 +146,26 @@ _infer_tf = transforms.Compose([
 # Grad-CAM target for this architecture.
 
 
+# OpenCV colormap registry. Default TURBO (perceptually uniform, smooth
+# blue-green-yellow-red gradient). INFERNO is darker at the low end and
+# more saturated at the high end — better contrast against natural retinal
+# red, less ambiguous for clinical use.
+_COLORMAPS: dict[str, int] = {
+    "turbo":   cv2.COLORMAP_TURBO,
+    "inferno": cv2.COLORMAP_INFERNO,
+    "jet":     cv2.COLORMAP_JET,        # legacy, retained for back-compat
+    "viridis": cv2.COLORMAP_VIRIDIS,    # bonus option (low-saturation green/blue)
+    "magma":   cv2.COLORMAP_MAGMA,      # close cousin of inferno
+}
+_DEFAULT_COLORMAP = "turbo"
+
+
 def _gradcam_overlay(activations: torch.Tensor,
                      gradients: torch.Tensor,
                      base_rgb: np.ndarray,
                      max_alpha: float = 0.65,
-                     attention_threshold: float = 0.35) -> np.ndarray:
+                     attention_threshold: float = 0.35,
+                     colormap: str = _DEFAULT_COLORMAP) -> np.ndarray:
     """Grad-CAM overlay tuned for clinical readability.
 
     - Weight feature maps by spatially-averaged gradients (standard Grad-CAM).
@@ -158,7 +173,8 @@ def _gradcam_overlay(activations: torch.Tensor,
     - Resize to base image, smooth with a small Gaussian to avoid blocky pixels.
     - Soft-threshold below `attention_threshold` so cool/blue regions don't
       tint the entire fundus — only warm regions are blended.
-    - TURBO colormap: perceptually uniform, more modern than JET.
+    - Colormap is selectable; default TURBO. INFERNO available for higher
+      contrast against natural retinal red.
     - Per-pixel alpha = clip((cam - threshold) / (1 - threshold), 0, 1) * max_alpha
       so the strongest attention dominates and weak attention fades to zero.
     """
@@ -183,7 +199,8 @@ def _gradcam_overlay(activations: torch.Tensor,
     cam_resized = np.clip(cam_resized, 0.0, 1.0)
 
     cam_uint8 = (cam_resized * 255).astype(np.uint8)
-    heatmap_bgr = cv2.applyColorMap(cam_uint8, cv2.COLORMAP_TURBO)
+    cmap_id = _COLORMAPS.get(colormap.lower(), _COLORMAPS[_DEFAULT_COLORMAP])
+    heatmap_bgr = cv2.applyColorMap(cam_uint8, cmap_id)
     heatmap_rgb = cv2.cvtColor(heatmap_bgr, cv2.COLOR_BGR2RGB).astype(np.float32)
 
     # Soft threshold: only blend where the model actually attended.
@@ -240,12 +257,14 @@ def _tta_logits(x: torch.Tensor) -> torch.Tensor:
 # ─── Core prediction ──────────────────────────────────────────────────────
 def predict_bytes(image_bytes: bytes,
                   calibrated: bool = True,
-                  with_heatmap: bool = True) -> dict:
+                  with_heatmap: bool = True,
+                  colormap: str = _DEFAULT_COLORMAP) -> dict:
     """Run the full pipeline on raw image bytes.
 
     When `with_heatmap=True` the response includes a base64-encoded PNG
     Grad-CAM overlay under `heatmap_b64`. Costs one extra forward+backward
-    pass (~600 ms on CPU).
+    pass (~600 ms on CPU). `colormap` selects the heatmap palette (see
+    _COLORMAPS for valid keys; defaults to TURBO).
     """
     arr = np.frombuffer(image_bytes, dtype=np.uint8)
     img_bgr = cv2.imdecode(arr, cv2.IMREAD_COLOR)
@@ -309,7 +328,12 @@ def predict_bytes(image_bytes: bytes,
     finally:
         handle.remove()
 
-    overlay_rgb = _gradcam_overlay(feats, grads, overlay_base if overlay_base is not None else pre_rgb)
+    overlay_rgb = _gradcam_overlay(
+        feats,
+        grads,
+        overlay_base if overlay_base is not None else pre_rgb,
+        colormap=colormap,
+    )
     heatmap_b64 = _encode_png_b64(overlay_rgb)
 
     return {
@@ -321,6 +345,7 @@ def predict_bytes(image_bytes: bytes,
         "temperature_used": _CALIB_T if calibrated else 1.0,
         "tta":              _TTA_ENABLED,
         "heatmap_b64":      heatmap_b64,
+        "colormap":         colormap.lower() if colormap.lower() in _COLORMAPS else _DEFAULT_COLORMAP,
     }
 
 
@@ -373,14 +398,20 @@ def health():
 @app.post("/predict")
 async def predict(
     file: UploadFile = File(...),
+    colormap: str = Form(default=_DEFAULT_COLORMAP),
     _: None = Depends(_check_key),
 ):
-    """Upload a fundus image, get a DR severity prediction with calibrated confidence."""
+    """Upload a fundus image, get a DR severity prediction with calibrated confidence.
+
+    Optional `colormap` form field selects the heatmap palette. Valid values:
+    `turbo` (default), `inferno`, `magma`, `viridis`, `jet`. Anything else
+    silently falls back to TURBO.
+    """
     if not file.content_type or not file.content_type.startswith("image/"):
         raise HTTPException(status_code=400, detail="upload must be an image")
     try:
         data = await file.read()
-        result = predict_bytes(data, calibrated=True)
+        result = predict_bytes(data, calibrated=True, colormap=colormap)
         result["filename"] = file.filename
         return result
     except ValueError as e:
