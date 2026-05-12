@@ -26,7 +26,6 @@
         "backgroundColor": "#ffffff"
       },
       "package": "com.retinaai.app",
-      "versionCode": 1,
       "permissions": [
         "android.permission.CAMERA",
         "android.permission.READ_MEDIA_IMAGES"
@@ -56,8 +55,6 @@
     "updates": {
       "url": "https://u.expo.dev/b565b17c-ad70-4067-ae12-6e4bd1cbfca1"
     },
-    "runtimeVersion": {
-      "policy": "appVersion"
-    }
+    "runtimeVersion": "1.0.0"
   }
 }
